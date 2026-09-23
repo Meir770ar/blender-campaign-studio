@@ -2,6 +2,20 @@
 
 ## DaVinci hand-off and audit fixes — 2026-09-20 (see below the 09-23 entry)
 
+## 2026-09-23 demo production (bcs-demo-45s) and Genspark primary route
+
+- `provider_jobs.py` now accepts Genspark as a primary route (`test_genspark_primary.py`, 2 tests; 222 total pass): text-to-video
+  (0 references, up to 1080P) or one first frame (720P), `mode` recorded; the fallback contract with `fallback_for` is unchanged.
+- Live: the demo narration (409 characters) rendered as ONE ElevenLabs v3 request and `narration_plan.py layout --mode single` cut
+  it into six segments by the returned word timestamps; pauses were retuned afterwards without re-rendering. Suno returned
+  `captcha_required` and stayed blocked (fail-closed, nothing submitted). Genspark: batch of 8 approved with `--pilot 2`; S01 (1080P,
+  5 s, 16:9) generated and collected (1920x1088 H.264, 24 fps, 5.04 s; the 1088 rows are encoder padding, crop to 1080 on
+  conform); S02's CLI call was killed mid-transport when the session ended, leaving the job `submitting` with no receipt, and the
+  account balance moved 5352.5 -> 4280 (about 610 for S01, the rest consistent with S02 having been charged). No resubmission;
+  reconciliation needs the website's video history.
+- Lesson recorded in the Genspark test and docs: never run a paid CLI call in a background shell that can be torn down; run it
+  in the foreground with its own timeout, and treat an interrupted call as `unknown`.
+
 ## 2026-09-23 round 2: fixes chosen by council + Jev verdict (F1, F7, F5, F8, F4, F3)
 
 - **220 Python tests pass** (13 new in `test_long_form.py`): single-render narration cut at segment boundaries by word

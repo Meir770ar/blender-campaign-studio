@@ -69,17 +69,29 @@ def validate_request(value, base, config):
         r.setdefault('aspect_ratio', '16:9')
         r.setdefault('resolution', '720P')
         r.setdefault('audio', False)
-        if r['aspect_ratio'] not in ('16:9', '9:16', '1:1') or r['resolution'] not in ('480P', '720P'):
+        if r['aspect_ratio'] not in ('16:9', '9:16', '1:1') or r['resolution'] not in ('480P', '720P', '1080P'):
             raise ValueError('Unsupported aspect ratio or resolution for the subscription preset')
         if type(r['audio']) is not bool:
             raise ValueError('audio must be boolean')
     if provider == 'genspark':
-        if len(r['references']) != 1:
-            raise ValueError('Genspark fallback requires one preserved first-frame image')
-        parent = source_path(r.get('fallback_for'), base)
-        original = load_json(parent)
-        r['fallback_for'] = {'path': str(parent), 'id': original['id']}
-        validate_fallback(r)
+        if r.get('fallback_for') is None:
+            # Primary route (2026-09-23): Grok Imagine on Genspark credits, text-to-video or one first
+            # frame. The CLI documents 1080P output for text-to-video; a first frame keeps 720P.
+            if len(r['references']) > 1:
+                raise ValueError('A Genspark request takes at most one first-frame image')
+            if r['resolution'] == '1080P' and r['references']:
+                raise ValueError('1080P on Genspark is text-to-video only; with a first frame use 720P')
+            r['mode'] = 'image-to-video' if r['references'] else 'text-to-video'
+        else:
+            if len(r['references']) != 1:
+                raise ValueError('Genspark fallback requires one preserved first-frame image')
+            if r['resolution'] == '1080P':
+                raise ValueError('A Genspark fallback keeps the original shot contract; 1080P is not part of it')
+            parent = source_path(r.get('fallback_for'), base)
+            original = load_json(parent)
+            r['fallback_for'] = {'path': str(parent), 'id': original['id']}
+            validate_fallback(r)
+            r['mode'] = 'fallback'
     if provider == 'suno':
         r.setdefault('instrumental', True)
         r.setdefault('lyrics', '')
@@ -479,7 +491,8 @@ def execute(folder, config, estimated_usage):
         if provider == 'heygen':
             heygen_bridge.preflight(r, c)
         if provider == 'genspark':
-            validate_fallback(r)
+            if r.get('fallback_for'):
+                validate_fallback(r)
             if c['route'] == 'existing_cli':
                 check = probe('genspark', config)
                 if not check.get('cli_authenticated') or not isinstance(check.get('cli_credit_balance'), (int, float)) or check['cli_credit_balance'] <= 0:
@@ -535,7 +548,7 @@ def execute(folder, config, estimated_usage):
                 else:
                     job['tool_request'] = {'tool': 'cua_repl', 'workflow': 'genspark-existing-account-video',
                     'url': c['browser_url'], 'model': c['model'], 'prompt': r['prompt'],
-                    'first_frame_path': r['references'][0]['path'], 'duration_seconds': r['duration_seconds'],
+                    'first_frame_path': r['references'][0]['path'] if r['references'] else None, 'duration_seconds': r['duration_seconds'],
                     'aspect_ratio': r['aspect_ratio'], 'resolution': r['resolution'], 'audio': r['audio'],
                     'count': 1, 'auto_prompt': False,
                     'receipt_command': 'record-browser', 'collection_command': 'register'}
