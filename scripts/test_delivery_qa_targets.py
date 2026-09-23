@@ -15,7 +15,7 @@ MEASURED = {'input_i': '-16.4', 'input_tp': '-1.7', 'input_lra': '6', 'input_thr
 class DeliveryQaTargetTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()
         self.video = self.root / 'final.mp4'
         self.video.write_bytes(b'encoded fixture')
         self.plan = {'version': 1, 'width': 640, 'height': 360, 'fps': 24, 'frames': 72,

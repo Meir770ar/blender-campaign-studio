@@ -11,7 +11,7 @@ from campaign_techniques import interpolate_track, source_assets, validate_spec
 class TechniqueContractTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()
         for name in ("plate.png", "insert.png", "back.png", "middle.png", "front.png"):
             (self.root / name).write_bytes(b"contract fixture")
         (self.root / "product.glb").write_bytes(b"contract fixture")

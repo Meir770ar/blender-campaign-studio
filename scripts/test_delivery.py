@@ -10,7 +10,7 @@ import whatsapp_delivery as wa
 
 class DeliveryTests(unittest.TestCase):
     def setUp(self):
-        self.temp=tempfile.TemporaryDirectory(); self.root=Path(self.temp.name)
+        self.temp=tempfile.TemporaryDirectory(); self.root=Path(self.temp.name).resolve()
         self.copy=self.root/'final.mp4'; self.copy.write_bytes(b'mock encoded copy')
         self.inspect=patch.object(wa,'inspect',return_value={'streams':[{'codec_type':'video','codec_name':'h264','pix_fmt':'yuv420p'}]})
         self.inspect.start()

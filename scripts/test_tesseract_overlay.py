@@ -35,7 +35,7 @@ class TextActionTests(unittest.TestCase):
 class MakeTitleOrchestrationTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
-        self.out = Path(self.temp.name) / 'overlays'
+        self.out = Path(self.temp.name).resolve() / 'overlays'
         self.config = {'ssh_alias': 'ai-station', 'tsrct': 'X:/tsrct.cmd', 'work_root': 'C:/w'}
 
     def tearDown(self):

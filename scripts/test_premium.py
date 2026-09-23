@@ -166,7 +166,7 @@ class CreativeGateTests(unittest.TestCase):
 class PremiumProductTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()
         (self.root / 'product.glb').write_bytes(b'contract-only fixture')
         self.spec = {
             'version': 1, 'shot_id': 'S04',
@@ -206,7 +206,7 @@ class PremiumProductTests(unittest.TestCase):
 class ShotReviewTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()
         self.media = self.root / 'shot.mp4'
         self.media.write_bytes(b'immutable review fixture')
         self.packet_path = self.root / 'review-packet.json'

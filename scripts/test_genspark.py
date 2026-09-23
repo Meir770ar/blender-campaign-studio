@@ -9,7 +9,7 @@ import provider_jobs as jobs
 
 class GensparkFallbackTests(unittest.TestCase):
     def setUp(self):
-        self.temp=tempfile.TemporaryDirectory();self.root=Path(self.temp.name)
+        self.temp=tempfile.TemporaryDirectory();self.root=Path(self.temp.name).resolve()
         self.config={'grok':{'model':'xai/grok-imagine-video'},'genspark':{'route':'browser_existing_account','model':'xai/grok-imagine-video','browser_url':'https://www.genspark.ai/agents?type=video_generation_agent'}}
         self.ref=self.root/'first.png';self.ref.write_bytes(b'fixture image')
         self.original={'provider':'grok','prompt':'A child deposits one coin.','references':[str(self.ref)],'duration_seconds':6,'aspect_ratio':'9:16','resolution':'720P','audio':False}

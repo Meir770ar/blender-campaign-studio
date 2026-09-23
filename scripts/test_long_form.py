@@ -52,7 +52,7 @@ class GainAutomationTests(unittest.TestCase):
 
     def test_music_lift_measured_on_the_stem(self):
         with tempfile.TemporaryDirectory() as folder:
-            root = Path(folder)
+            root = Path(folder).resolve()
             source = root / 'tone.wav'
             tone(source, 6)
             spec = root / 'mix.json'
@@ -88,7 +88,7 @@ class BrandCaptionTests(unittest.TestCase):
 
     def test_no_spoken_emphasis_yields_one_state_per_phrase(self):
         with tempfile.TemporaryDirectory() as folder:
-            root = Path(folder)
+            root = Path(folder).resolve()
             words = root / 'words.json'
             words.write_text(json.dumps({'words': [{'word': 'שלום', 'start': 0, 'end': .5},
                                                    {'word': 'מחוברים', 'start': .5, 'end': 1.0}]}), encoding='utf-8')
@@ -119,7 +119,7 @@ class PlanMotionTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()
         (self.root / 'image.png').write_bytes(b'fixture')
         (self.root / 'seq').mkdir()
         for index in range(1, 5):
@@ -182,7 +182,7 @@ class PlanMotionTests(unittest.TestCase):
 class BridgeSequenceTests(unittest.TestCase):
     def test_image_sequence_reaches_resolve_through_its_companion_movie(self):
         with tempfile.TemporaryDirectory() as folder:
-            root = Path(folder)
+            root = Path(folder).resolve()
             (root / 'base.png').write_bytes(b'fixture')
             (root / 'fx').mkdir()
             for index in range(1, 4):
@@ -213,7 +213,7 @@ class BatchApprovalTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()
         self.config = {'images': {'route': 'codex_builtin'}, 'suno': {'client_module': 'x', 'model': 'm'}}
 
     def prepare(self, prompt, provider='images'):
@@ -287,7 +287,7 @@ class NarrationPlanTests(unittest.TestCase):
 
     def test_split_validates_and_writes_one_request_per_segment(self):
         with tempfile.TemporaryDirectory() as folder:
-            root = Path(folder)
+            root = Path(folder).resolve()
             report = narration_plan.split(self.script(root), root / 'split')
             self.assertEqual(len(report['segments']), 2)
             request = json.loads(Path(report['segments'][0]['request']).read_text(encoding='utf-8'))
@@ -306,7 +306,7 @@ class NarrationPlanTests(unittest.TestCase):
 
     def test_layout_places_segments_with_pauses_and_merges_words(self):
         with tempfile.TemporaryDirectory() as folder:
-            root = Path(folder)
+            root = Path(folder).resolve()
             (root / 'a').mkdir(); (root / 'b').mkdir()
             tone(root / 'a' / 'narration.wav', 1.0)
             tone(root / 'b' / 'narration.wav', 0.5)
@@ -327,7 +327,7 @@ class NarrationPlanTests(unittest.TestCase):
 
     def test_layout_finds_the_completed_job_by_exact_text(self):
         with tempfile.TemporaryDirectory() as folder:
-            root = Path(folder)
+            root = Path(folder).resolve()
             jobs_root = root / 'jobs'
             for name, text, state in (('j1', 'בוקר טוב, ברוכים הבאים.', 'complete'), ('j2', 'היום נראה איך זה עובד.', 'complete'),
                                       ('j3', 'היום נראה איך זה עובד.', 'prepared')):
@@ -344,7 +344,7 @@ class NarrationPlanTests(unittest.TestCase):
 class SequenceToolTests(unittest.TestCase):
     def test_still_alpha_sequence_and_movie_round_trip(self):
         with tempfile.TemporaryDirectory() as folder:
-            root = Path(folder)
+            root = Path(folder).resolve()
             subprocess.run(['ffmpeg', '-v', 'error', '-f', 'lavfi', '-i', 'testsrc=size=64x64:rate=24:duration=1',
                             '-pix_fmt', 'yuv420p', str(root / 'clip.mp4')], check=True)
             report = sequence_tools.still(root / 'clip.mp4', .5, root / 'freeze.png')
@@ -464,7 +464,7 @@ class SunoExtendTests(unittest.TestCase):
 
     def test_extension_fields_validate_together(self):
         with tempfile.TemporaryDirectory() as folder:
-            root = Path(folder)
+            root = Path(folder).resolve()
             r = jobs.validate_request({'provider': 'suno', 'style': 'builds into uplifting strings', 'instrumental': True,
                                        'extend_clip_id': 'abcd1234-ef56', 'extend_at_seconds': 45}, root, self.config)['request']
             self.assertEqual((r['extend_clip_id'], r['extend_at_seconds']), ('abcd1234-ef56', 45))
@@ -477,7 +477,7 @@ class SunoExtendTests(unittest.TestCase):
 
     def test_bridge_sends_the_extension_to_the_existing_client(self):
         with tempfile.TemporaryDirectory() as folder:
-            root = Path(folder)
+            root = Path(folder).resolve()
             captured = root / 'body.json'
             module = root / 'fake-client.mjs'
             module.write_text('import fs from "node:fs";\nexport class SunoClient { constructor(){this.cookie="mock";} async api(path, opts){'
@@ -509,7 +509,7 @@ class SingleNarrationTests(unittest.TestCase):
 
     def test_split_writes_the_single_request(self):
         with tempfile.TemporaryDirectory() as folder:
-            root = Path(folder)
+            root = Path(folder).resolve()
             report = narration_plan.split(self.script(root), root / 'split')
             self.assertEqual(report['recommended_mode'], 'single')
             single = json.loads(Path(report['single_request']).read_text(encoding='utf-8'))
@@ -518,7 +518,7 @@ class SingleNarrationTests(unittest.TestCase):
 
     def test_single_render_is_cut_at_segment_boundaries_with_pauses(self):
         with tempfile.TemporaryDirectory() as folder:
-            root = Path(folder)
+            root = Path(folder).resolve()
             (root / 'take').mkdir()
             tone(root / 'take' / 'narration.wav', 3.0)
             words = [('בוקר', .1, .4), ('טוב', .5, .8), ('לכולם', .9, 1.2), ('היום', 1.6, 1.9), ('נתחיל', 2.0, 2.3), ('מיד.', 2.4, 2.7)]
@@ -546,7 +546,7 @@ class SingleNarrationTests(unittest.TestCase):
 class VisionCheckTests(unittest.TestCase):
     def test_check_flags_present_items_and_reads_the_request(self):
         with tempfile.TemporaryDirectory() as folder:
-            root = Path(folder)
+            root = Path(folder).resolve()
             media = root / 'shot.mp4'
             media.write_bytes(b'fixture')
             request = root / 'request.json'

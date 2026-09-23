@@ -51,7 +51,7 @@ class FakeStation:
 class StationArchiveTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
-        self.project = Path(self.temp.name) / 'campaign-2026'
+        self.project = Path(self.temp.name).resolve() / 'campaign-2026'
         for relative, data in (('assets/קליפ גלם.mp4', b'raw'), ('renders/v001/final.mp4', b'render'),
                                ('plan-v001.json', b'{}'), ('renders/v001/frame.png.writing', b'tmp'),
                                ('scripts/__pycache__/x.pyc', b'pyc')):
@@ -125,7 +125,7 @@ class StationArchiveTests(unittest.TestCase):
         self.assertEqual(self.station.commands, [])
 
     def test_slug_rules(self):
-        hebrew = Path(self.temp.name) / 'קמפיין'
+        hebrew = Path(self.temp.name).resolve() / 'קמפיין'
         hebrew.mkdir()
         with self.assertRaisesRegex(ValueError, 'ASCII slug'):
             sa.push(hebrew, config=CONFIG, dry_run=True)

@@ -63,7 +63,7 @@ class FakeTimeline:
 class BridgeTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()
         for name in ('clip.mp4', 'כותרת ראשית.png', 'music.wav'):
             (self.root / name).write_bytes(b'fixture bytes, not decoded')
         self.plan = {'version': 1, 'width': 640, 'height': 360, 'fps': 24, 'frames': 96, 'clips': [
@@ -269,7 +269,7 @@ class StationRouteTests(unittest.TestCase):
 
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
-        self.project = Path(self.temp.name) / 'campaign-2026'
+        self.project = Path(self.temp.name).resolve() / 'campaign-2026'
         (self.project / 'media').mkdir(parents=True)
         for name in ('clip.mp4', 'title.png', 'music.wav'):
             (self.project / 'media' / name).write_bytes(b'fixture bytes, not decoded')
@@ -313,7 +313,7 @@ class StationRouteTests(unittest.TestCase):
         self.assertIn(self.project.resolve().as_posix() + '/media/clip.mp4', xml)
 
     def test_production_path_map_requires_ascii_slug(self):
-        hebrew = Path(self.temp.name) / 'קמפיין'
+        hebrew = Path(self.temp.name).resolve() / 'קמפיין'
         hebrew.mkdir()
         with self.assertRaisesRegex(ValueError, 'ASCII slug'):
             bridge.production_path_map(self.CONFIG, hebrew)

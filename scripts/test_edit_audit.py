@@ -50,7 +50,7 @@ class ClockTests(unittest.TestCase):
 
 class PCMTests(unittest.TestCase):
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(); self.root = Path(self.temp.name)
+        self.temp = tempfile.TemporaryDirectory(); self.root = Path(self.temp.name).resolve()
         self.source = self.root / 'source.wav'
         wav(self.source, 48000, lambda i: int(4000 * math.sin(2 * math.pi * 440 * i / 48000)))
 
@@ -122,7 +122,7 @@ class PCMTests(unittest.TestCase):
 class DeliveryEvidenceTests(unittest.TestCase):
     def test_changing_clock_contract_invalidates_prior_pass(self):
         with tempfile.TemporaryDirectory() as folder:
-            root=Path(folder); video=root/'copy.mp4'; video.write_bytes(b'encoded copy')
+            root=Path(folder).resolve(); video=root/'copy.mp4'; video.write_bytes(b'encoded copy')
             spec=root/'spec.json'; report=root/'audit.json'
             value=dict(schema_version=1,target=str(video),clock_segments=[dict(source_id='photos',
                        timeline_start_frame=0,timeline_end_frame=10,source_start_frame=0)])
@@ -138,7 +138,7 @@ class DeliveryEvidenceTests(unittest.TestCase):
 
     def test_target_and_source_hashes_and_failed_report(self):
         with tempfile.TemporaryDirectory() as folder:
-            root = Path(folder); video = root / 'copy.mp4'; video.write_bytes(b'actual encoded bytes')
+            root = Path(folder).resolve(); video = root / 'copy.mp4'; video.write_bytes(b'actual encoded bytes')
             stem = root / 'stem.wav'; stem.write_bytes(b'stem')
             report = root / 'audit.json'
             info = dict(format=dict(duration='1'), streams=[dict(codec_type='video', codec_name='h264', pix_fmt='yuv420p')])

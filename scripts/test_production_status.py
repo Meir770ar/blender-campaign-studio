@@ -11,7 +11,7 @@ from studio import main as studio_main
 class ProductionStatusTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
-        self.project = Path(self.temp.name) / "production"
+        self.project = Path(self.temp.name).resolve() / "production"
         studio_main(["init", "--project", str(self.project), "--idea", "סרטון בדיקה מלא בעברית"])
 
     def tearDown(self):

@@ -14,7 +14,7 @@ class ProviderExpansion(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()
         self.image = self.root / 'frame.png'
         self.image.write_bytes(b'reference fixture')
         self.config = {'grok': {'model': 'xai/grok-imagine-video', 'preferred_model': 'xai/grok-imagine-video-1.5'},

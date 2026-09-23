@@ -13,7 +13,7 @@ import delivery_qa
 class SampleTimingTests(unittest.TestCase):
     def test_trimmed_delayed_music_retains_tail_and_fractional_onset(self):
         with tempfile.TemporaryDirectory() as folder:
-            root=Path(folder); source=root/'tone.wav'
+            root=Path(folder).resolve(); source=root/'tone.wav'
             subprocess.run(['ffmpeg','-v','error','-f','lavfi','-i',
                             'sine=frequency=440:sample_rate=48000:duration=9',str(source)],check=True)
             at=4.250125; length=3
@@ -43,7 +43,7 @@ class SampleTimingTests(unittest.TestCase):
 class EncodedTargetTests(unittest.TestCase):
     def check_measurement(self,measurement,targets):
         with tempfile.TemporaryDirectory() as folder:
-            root=Path(folder);video=root/'fixture.mp4';video.write_bytes(b'fixture')
+            root=Path(folder).resolve();video=root/'fixture.mp4';video.write_bytes(b'fixture')
             plan=root/'plan.json'; plan.write_text(json.dumps(dict(width=1920,height=1080,
                 fps=24,frames=48,clips=[dict(kind='sound')],**targets)),encoding='utf-8')
             info=dict(format=dict(duration='2'),streams=[dict(codec_type='video',codec_name='h264',

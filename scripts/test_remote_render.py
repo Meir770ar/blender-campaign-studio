@@ -13,7 +13,7 @@ import render_worker
 class RemoteRenderTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()
         for name in ("jobs", "incoming", "outgoing", "bin", "tools"):
             (self.root / name).mkdir()
         (self.root / "bin/render_blender_job.py").write_text("# fixture", encoding="utf-8")

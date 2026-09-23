@@ -14,7 +14,7 @@ from captions import phrases, srt_time
 
 class ProviderTests(unittest.TestCase):
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(); self.root = Path(self.temp.name)
+        self.temp = tempfile.TemporaryDirectory(); self.root = Path(self.temp.name).resolve()
         self.config = {'images': {'route':'codex_builtin'}, 'suno': {'model':'test','client_module':'unused'},
                        'grok': {'model':'xai/grok-imagine-video'}, 'elevenlabs': {'model':'eleven_v3','voice_id':'test'}}
 
@@ -165,7 +165,7 @@ class TimingTests(unittest.TestCase):
 class SunoBridgeTests(unittest.TestCase):
     def check(self, response, should_submit):
         with tempfile.TemporaryDirectory() as temp:
-            root=Path(temp); module=root/'fake-client.mjs'; request=root/'request.json'
+            root=Path(temp).resolve(); module=root/'fake-client.mjs'; request=root/'request.json'
             module.write_text('export class SunoClient { constructor(){this.cookie="mock";} async api(path){'
                 +'if(path==="/api/c/check") return '+json.dumps(response)+';'
                 +'throw new Error("UNEXPECTED_GENERATION"); }}',encoding='utf-8')

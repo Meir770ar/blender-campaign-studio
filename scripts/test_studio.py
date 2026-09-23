@@ -10,7 +10,7 @@ from studio import main, validate_plan, write_new
 class ProductionTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()
         (self.root / 'image.png').write_bytes(b'contract fixture, not decoded')
         self.plan = {'version': 1, 'width': 640, 'height': 360, 'fps': 24, 'frames': 72,
                      'clips': [{'id': 'base', 'kind': 'image', 'path': 'image.png',
