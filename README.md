@@ -16,6 +16,8 @@ Every paid generation is a ledger entry with a recorded approval and a cap. Noth
 
 ![Ten seconds of the demo film: one request, eight shots, a budget cap and a pilot](docs/demo-10s.gif)
 
+The full 32-second film with sound: https://youtu.be/CB4LsyN5O_k
+
 The film is a 32-second developer cut, assembled by the skill from its own plan (`studio.py validate`, `studio.py assemble --render`, `delivery_qa.py`). The Blender and DaVinci Resolve screens are real captures of the pipeline running, and the caption line below is what the typography path produces: a licensed Hebrew font shaped by Chromium into a PNG layer with the spoken word in amber, never typed into an NLE.
 
 ![Hebrew caption layer with the spoken word highlighted in amber](docs/still-hebrew-captions.png)
