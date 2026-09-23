@@ -1,0 +1,24 @@
+{
+  "duration": 150,
+  "target_lufs": -16,
+  "true_peak_dbtp": -1.5,
+  "lra": 9,
+  "voice_cleanup": true,
+  "denoise": false,
+  "duck": {"threshold": 0.03, "ratio": 6, "attack_ms": 15, "release_ms": 350},
+  "tracks": [
+    {"path": "REPLACE: paste the voice tracks from narration-layout.json (mix-tracks.json) here", "role": "voice", "at": 0.6, "in": 0, "duration": 1, "gain_db": 0},
+
+    {"path": "REPLACE: assets/music-tense.wav", "role": "music", "at": 0, "in": 0, "duration": 47, "gain_db": -14,
+     "fade_in": 1.0, "fade_out": 2.5,
+     "gain_keys": [[0, -3], [1.5, 0], [42, 0], [45, -8]]},
+
+    {"path": "REPLACE: assets/music-uplifting.wav", "role": "music", "at": 44.5, "in": 0, "duration": 105.5, "gain_db": -12,
+     "fade_in": 0.6, "fade_out": 3.0,
+     "gain_keys": [[0, -6], [1.5, 2], [4, 0], [100, 0], [103, 3], [105.5, 0]]},
+
+    {"path": "REPLACE: assets/sfx-page-turn.wav", "role": "sfx", "at": 12.4, "in": 0, "duration": 0.8, "gain_db": -10},
+    {"path": "REPLACE: assets/sfx-clock-tick.wav", "role": "sfx", "at": 30.0, "in": 0, "duration": 4.0, "gain_db": -16, "fade_out": 0.6},
+    {"path": "REPLACE: assets/sfx-whoosh.wav", "role": "sfx", "at": 44.6, "in": 0, "duration": 1.2, "gain_db": -8}
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "technique": "environment-product-integration",
+  "shot_id": "REPLACE: shot id",
+  "intent": "REPLACE: visible purpose of placing the product in this environment",
+  "width": 1920,
+  "height": 1080,
+  "fps": 24,
+  "frames": 96,
+  "samples": 64,
+  "model": "REPLACE: local GLB product model",
+  "environment": {"background_rgba": [0.02, 0.02, 0.02, 1], "floor_rgba": [0.04, 0.04, 0.04, 1], "floor_roughness": 0.3, "floor_metallic": 0.05, "world_strength": 0.03},
+  "lighting": {"match_reference": "REPLACE: reviewed source direction and hierarchy", "key_azimuth_deg": -35, "key_elevation_deg": 42, "key_energy": 1000, "fill_energy": 180, "key_size": 4, "key_rgb": [1, 1, 1]},
+  "camera": {"lens_mm": 70, "distance": 7, "height_offset": 0.15, "travel_x": 0.25, "fstop": 5.6},
+  "motion": {"settle_fraction": 0.75},
+  "acceptance": [
+    {"id": "grounding", "check": "REPLACE: observable contact-shadow and reflection requirement", "evidence": "REPLACE: complete-motion inspection evidence"}
+  ]
+}

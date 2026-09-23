@@ -1,0 +1,237 @@
+{
+  "version": 1,
+  "images": {
+    "route": "codex_builtin",
+    "tool": "image_gen.imagegen",
+    "api_fallback": false
+  },
+  "suno": {
+    "client_module": "<suno-cli>/lib/client.mjs",
+    "model": "chirp-fenix",
+    "route": "existing_subscription_client"
+  },
+  "grok": {
+    "ssh_host": "<vps-ssh>",
+    "container": "<openclaw-gateway-container>",
+    "agent": "meir",
+    "model": "xai/grok-imagine-video",
+    "preferred_model": "xai/grok-imagine-video-1.5",
+    "route": "gateway_tools_invoke",
+    "max_reference_images": 7,
+    "max_frame_images": 2,
+    "native_contract": "20260909-v1.5-1080p",
+    "browser_generation": false,
+    "api_key_fallback": false
+  },
+  "heygen": {
+    "route": "existing_website_subscription_cli",
+    "cli_entry": "<heygen-cli>/heygen.mjs",
+    "credential_owner": "existing_cli_profile",
+    "receipt_owner": "existing_cli_jobs",
+    "character_library": "<heygen-cli>/_profile/characters",
+    "api_key_fallback": false
+  },
+  "genspark": {
+    "route": "existing_cli",
+    "browser_url": "https://www.genspark.ai/agents?type=video_generation_agent",
+    "cli_entry": "<genspark-cli>/dist/index.js",
+    "model": "xai/grok-imagine-video",
+    "max_reference_images": 1
+  },
+  "elevenlabs": {
+    "env_file": "<elevenlabs-env-file>",
+    "voice_id": "<voice-id>",
+    "model": "eleven_v3"
+  },
+  "magnific": {
+    "route": "official_oauth_mcp",
+    "mcp_server": "magnific",
+    "endpoint": "https://mcp.magnific.com",
+    "credential_owner": "codex_oauth",
+    "credit_pool": "magnific_plan",
+    "agent_orchestrated": true,
+    "read_only_preflight": [
+      "account_balance",
+      "creation_history_or_status"
+    ],
+    "paid_workflow": [
+      "video_plan",
+      "video_models_list",
+      "simulate_cost",
+      "video_generate"
+    ]
+  },
+  "magnific_rest": {
+    "route": "official_rest_cli",
+    "mcp_server": "magnific-rest",
+    "cli_entry": "<magnific-cli>/magnific.mjs",
+    "base_url": "https://api.magnific.com",
+    "credential_owner": "installed_gitignored_profile",
+    "credit_pool": "magnific_plan",
+    "agent_orchestrated": true,
+    "requires_confirm_write": true,
+    "requires_confirm_credit_use_for_ai": true
+  },
+  "dzine": {
+    "route": "creator_session_http",
+    "mcp_server": "dzine",
+    "cli_entry": "<dzine-cli>/dzine.mjs",
+    "hosts": [
+      "papi",
+      "proxy",
+      "lambda"
+    ],
+    "credential_owner": "installed_gitignored_profile",
+    "credit_pool": "dzine_creator_web",
+    "official_api_uses_separate_wallet": true,
+    "unsupported_session_api": true,
+    "agent_orchestrated": true,
+    "bulk_allowed": false,
+    "max_parallel": 1,
+    "required_write_confirmations": [
+      "confirm_write",
+      "confirm_credit_use",
+      "acknowledge_unsupported_api"
+    ]
+  },
+  "render_station": {
+    "route": "ssh_content_addressed_worker",
+    "ssh_alias": "ai-station",
+    "host_role": "video_station",
+    "root": "C:/render-worker",
+    "incoming_root": "C:/render-worker/incoming",
+    "outgoing_root": "C:/render-worker/outgoing",
+    "jobs_root": "C:/render-worker/jobs",
+    "python": "python",
+    "blender": "C:/render-worker/tools/blender-5.1.0/blender.exe",
+    "worker": "C:/render-worker/bin/render_worker.py",
+    "render_script": "C:/render-worker/bin/render_blender_job.py",
+    "config": "C:/render-worker/config.json",
+    "max_parallel": 1,
+    "automatic_retry": false,
+    "credential_owner": "windows_openssh"
+  },
+  "davinci": {
+    "route": "scripting_api_and_mcp",
+    "role": "finishing_nle",
+    "edition_required": "DaVinci Resolve Studio",
+    "measured_build": "21.1.0.14",
+    "default_finishing_host": "station",
+    "why_station": "renders and GPU finishing run on the VIDEO STATION RTX A5000 (much faster than the laptop i7-9750H); the bridge --host station default routes there. The laptop route stays as an offline fallback.",
+    "mcp_server": "davinci-resolve-studio",
+    "mcp_hosts": [
+      "claude-code:user-scope",
+      "codex:~/.codex/config.toml"
+    ],
+    "script_api": "C:/ProgramData/Blackmagic Design/DaVinci Resolve/Support/Developer/Scripting",
+    "script_lib": "C:/Program Files/Blackmagic Design/DaVinci Resolve/fusionscript.dll",
+    "modules": "C:/ProgramData/Blackmagic Design/DaVinci Resolve/Support/Developer/Scripting/Modules",
+    "bridge": "scripts/davinci_bridge.py",
+    "remote_helper": "scripts/davinci_bridge_remote.py",
+    "domain_skills_root": "<davinci-resolve-mcp>/.claude/skills",
+    "requires_running_resolve_with_saved_project": true,
+    "hebrew_text_policy": "png_layers_only_never_text_plus",
+    "credential_owner": "none_local_only",
+    "mcp_official": true,
+    "mcp_command": "C:/Program Files/Blackmagic Design/DaVinci Resolve/ResolveMCP.exe",
+    "mcp_tools": "14 (run_script sandboxed Python 3.14 over the full scripting API, API search/docs, LUT/DCTL authoring)",
+    "station": {
+      "route": "ssh_scripting_api_over_station_archive_alias",
+      "host_role": "video_station",
+      "ssh_alias": "ai-station",
+      "media_root": "D:/video-productions-archive/<slug>",
+      "note": "media is mirrored to the station by station_archive (studio.py archive-push) before finishing; the bridge remaps the sequence.xml pathurls from the local production root to <archive root>/<slug>",
+      "script_api": "C:/ProgramData/Blackmagic Design/DaVinci Resolve/Support/Developer/Scripting",
+      "script_lib": "C:/Program Files/Blackmagic Design/DaVinci Resolve/fusionscript.dll",
+      "modules": "C:/ProgramData/Blackmagic Design/DaVinci Resolve/Support/Developer/Scripting/Modules",
+      "python": "python",
+      "mcp_server": "davinci-resolve-station",
+      "mcp_command": "ssh -o BatchMode=yes -o ConnectTimeout=20 ai-station <station>/resolve-mcp.cmd",
+      "mcp_hosts": [
+        "claude-code:user-scope",
+        "codex:~/.codex/config.toml"
+      ],
+      "measured_build": "21.1.0.14",
+      "requires_resolve_open_on_station_desktop": true
+    },
+    "community_mcp": {
+      "name": "davinci-resolve-community-station",
+      "server": "samuelgursky/davinci-resolve-mcp",
+      "measured_version": "4.8.15",
+      "host": "station",
+      "always_on": true,
+      "why_on": "user asked (2026-09-22) for the ready compound workflows available at any moment: rough cut from raw footage, media analysis with transcription, offline .drp/.drt/.drx editing, conform QC, and destructive-op safety traps that the official 14-tool server does not have",
+      "station_install": "<station>/davinci-resolve-mcp (git clone, own venv, Python 3.10.11)",
+      "station_wrapper": "<station>/resolve-community-mcp.cmd (sets RESOLVE_SCRIPT_API/LIB + PYTHONUNBUFFERED, runs venv python -u src/server.py, 37 compound tools)",
+      "mcp_command": "ssh -o BatchMode=yes -o ConnectTimeout=20 ai-station <station>/resolve-community-mcp.cmd",
+      "mcp_hosts": [
+        "claude-code:user-scope",
+        "codex:~/.codex/config.toml"
+      ],
+      "contextual_loading": "ENABLE_TOOL_SEARCH is on, so the 37 compound tools are deferred: a names-only list in-session, near-zero cost until used. Per request, decide the Resolve domain and ToolSearch only the relevant compound tool(s) — do not resident-load the whole server. Domain->tool map in references/davinci-resolve.md.",
+      "context_cost": "full resident load would be ~142 KB/session; deferred under Tool Search it is names-only until a tool is searched",
+      "domain_skills_root": "<davinci-resolve-mcp>/.claude/skills (craft docs written for this server's tool names; also mirrored on the station under <station>/davinci-resolve-mcp/.claude/skills)",
+      "laptop_copy": "<davinci-resolve-mcp> (v4.8.13, drives the laptop Resolve, kept but not registered live)"
+    }
+  },
+  "station_archive": {
+    "route": "ssh_sftp_verified_mirror",
+    "ssh_alias": "ai-station",
+    "root": "D:/video-productions-archive",
+    "python": "python",
+    "helper": "scripts/station_archive_remote.py",
+    "policy": "laptop is the working copy; every production is mirrored to the station after ingest, render and delivery; nothing is deleted on either side by tooling",
+    "credential_owner": "windows_openssh"
+  },
+  "antigravity": {
+    "route": "subscription_cli_no_key",
+    "role": "scriptwriting_and_semantic_video_analysis",
+    "engine": "Google AI Pro / Antigravity — Gemini 3.5 Flash (cloudcode id gemini-3-flash-preview)",
+    "cli": "<agy-cloudcode.mjs>",
+    "bridge": "scripts/antigravity.py",
+    "node_caller": "scripts/agy_call.mjs",
+    "commands": {
+      "script": "python scripts/antigravity.py script --brief BRIEF --out OUT [--duration N]",
+      "analyze_shot": "python scripts/antigravity.py analyze --media MP4 --kind shot --out OUT [--brief BRIEF] [--context TEXT]",
+      "analyze_master": "python scripts/antigravity.py analyze --media MASTER.mp4 --kind master --out OUT [--brief BRIEF]"
+    },
+    "video_analysis": "native Gemini video understanding via agy-cloudcode: up to 24 adaptive frames + ffmpeg audio -> whisper transcript, then Gemini. Requires node, ffmpeg and whisper on PATH.",
+    "auth": "OAuth from Windows Credential Manager gemini:antigravity via <claui-home>/get-agy-token.ps1 (no API key); project plasma-benefit-pgc82, tier g1-pro",
+    "quota": "consumes the user's Google AI Pro subscription; the bridge is invoked explicitly and never loops. agy-cloudcode already retries 429 with backoff.",
+    "analyze_output": "structured JSON: summary, brief/continuity/emotional read, defects, plus professional fixes[] (issue/why/priority) and per-tool editing guidance edit_blender[] (3D/compositing/PNG text/VSE) and edit_davinci[] (cut/grade/Fairlight/delivery), and a recommendation.",
+    "advisory_rule": "script output feeds the storyboard/plan; analyze output (including its fixes and editing guidance) is advisory evidence only, never creative acceptance — a human still watches and listens (same rule as review_shot.py).",
+    "model_override": "AGY_CLOUDCODE_MODEL env",
+    "credential_owner": "windows_credential_manager",
+    "verified_live": "2026-09-23: script returned a 3-scene Hebrew JSON; analyze --kind shot returned parsed advisory JSON with a summary and recommendation on a real 3s clip."
+  },
+  "tesseract": {
+    "route": "station_cli_over_ssh",
+    "role": "hebrew_kinetic_typography_and_motion_overlays",
+    "engine": "Tesseract by Mirage (tsrct CLI 0.2.0), local Vulkan render engine",
+    "host": "station",
+    "why_station": "the renderer crashes on the laptop CPU (i7-9750H, illegal instruction); it renders on the VIDEO STATION RTX A5000. Authoring + font prep run on the laptop, render runs on the station over SSH.",
+    "ssh_alias": "ai-station",
+    "tsrct": "<station>/Tesseract/bin/tsrct.cmd",
+    "work_root": "<station>/tesseract-work",
+    "bridge": "scripts/tesseract_overlay.py",
+    "commands": {
+      "prep_font": "python scripts/tesseract_overlay.py prep-font --file FONT --out-dir DIR",
+      "title": "python scripts/tesseract_overlay.py title --text T --font FONT --name SLUG --out-dir DIR [--canvas WxH] [--duration S] [--font-size N] [--fill r,g,b,a] [--overlay]"
+    },
+    "hebrew_verified": "2026-09-23: renders Hebrew RTL + niqqud + bidi correctly (verified visually with Arial and the licensed Almoni brand font).",
+    "brand_font_rule": "the renderer only rasterizes TrueType and its matcher fails on family names with periods/spaces (e.g. 'Almoni Tzar DL 4.0 AAA'). The bridge normalizes any brand OTF/TTF to a clean ASCII-named TrueType before import (glyphs unchanged); requires otf2ttf + cu2qu (pip).",
+    "output": "editable .tsrct + preview PNG + export: opaque H.264 MP4, or with --overlay a transparent ProRes 4444 MOV (yuva444, alpha) to composite over footage in Blender or DaVinci.",
+    "boundaries": "supported-composition motion graphics and titles only: no 3D mesh/rigging (that stays Blender), no colour grading / Fairlight / delivery (that stays DaVinci). Text is native editable text here (unlike the Blender path which uses PNG), verified for Hebrew. Brand new (v0.2.0, 2026-09-23) — maturity risk.",
+    "requirements": "node/ffmpeg/whisper not needed; render needs the station GPU. Font prep needs local fonttools + otf2ttf + cu2qu.",
+    "advisory_rule": "a rendered frame is not creative acceptance; watch the motion. Composite output is a source layer, not a finished deliverable.",
+    "credential_owner": "windows_openssh"
+  },
+  "whatsapp": {
+    "route": "waha_self_chat_over_ssh",
+    "ssh_host": "<vps-ssh>",
+    "self_chat": "<self-chat-id>",
+    "session": "default",
+    "credentials_file": "/opt/waha/.credentials",
+    "note": "optional: final viewing copy delivered to your own WhatsApp; leave ssh_host empty to disable"
+  }
+}

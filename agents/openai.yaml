@@ -1,0 +1,6 @@
+interface:
+  display_name: "סטודיו קמפיינים ב־Blender"
+  short_description: "בימוי, עריכה והפקת וידאו בעברית עד מסירה בוואטסאפ"
+  default_prompt: "השתמש ב־$blender-campaign-studio: בוא נכין סרטון לעסק שלי. אתחיל ברעיון חופשי ומשם תשאל אותי את השאלות החשובות."
+policy:
+  allow_implicit_invocation: true

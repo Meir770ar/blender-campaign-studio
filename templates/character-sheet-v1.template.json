@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "character": {
+    "id": "REPLACE: slug, e.g. presenter-noa",
+    "name": "REPLACE: how the script refers to her",
+    "identity": "REPLACE: the visible facts that must not drift: age range, face shape, hair length/color/parting, skin tone, build, height cue, glasses/no glasses, distinguishing marks",
+    "wardrobe": "REPLACE: exact garments and colors for the whole film, e.g. plain light-blue crew-neck shirt, dark trousers, no jewelry",
+    "lighting": "REPLACE: the lighting logic she is always seen in, e.g. soft even daylight, no hard shadows on the face",
+    "style_constraints": ["REPLACE: positive style rules copied from direction.visual_system.style_constraints"],
+    "exclusions": ["REPLACE: at most three things that must never appear"]
+  },
+  "views": [
+    {"id": "front", "prompt": "REPLACE: neutral front view, waist up, plain background, the wardrobe above", "status": "planned", "asset": null},
+    {"id": "three-quarter", "prompt": "REPLACE: three-quarter view, same wardrobe and lighting", "status": "planned", "asset": null},
+    {"id": "profile", "prompt": "REPLACE: profile view", "status": "planned", "asset": null},
+    {"id": "full-body", "prompt": "REPLACE: full body standing, same wardrobe, shoes visible", "status": "planned", "asset": null}
+  ],
+  "shot_recipe": {
+    "still": "Every shot starts as a Codex still generated with the approved views as references plus the shot's own scene prompt (place, action, framing). Review the still before any video spend.",
+    "video": "Grok 1.5 image-to-video at 1080P from that single approved still as first_frame; no reference images in the same request (1080P and references are mutually exclusive).",
+    "continuity_alternative": "Shots that must continue a movement from a previous shot: Grok 720P reference-to-video with the approved views as reference_image plus the previous shot's last frame (studio.py still) as first_frame, then Magnific upscale to 1080p with a skin-preserving mode. No ESRGAN or face restoration on faces.",
+    "speaking": "Shots where she speaks to camera: HeyGen avatar from the approved front view, character_library.py card bound to this sheet.",
+    "pilot": "Three shots in three environments (office, meeting room, audience) before approving the series; compare the stills side by side for face, hair and wardrobe drift."
+  },
+  "approval": {
+    "views_approved_by": null,
+    "views_approved_at": null,
+    "notes": ""
+  }
+}

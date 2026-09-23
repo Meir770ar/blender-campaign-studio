@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "technique": "camera-projection-2_5d",
+  "shot_id": "REPLACE: shot id",
+  "intent": "REPLACE: visible story purpose of the depth reveal",
+  "width": 1920,
+  "height": 1080,
+  "fps": 24,
+  "frames": 72,
+  "samples": 1,
+  "layers": [
+    {"name": "REPLACE: background", "image": "REPLACE: separated licensed PNG", "depth": -1, "width": 12},
+    {"name": "REPLACE: subject", "image": "REPLACE: separated licensed PNG", "depth": 0, "width": 10},
+    {"name": "REPLACE: foreground", "image": "REPLACE: separated licensed PNG", "depth": 1, "width": 9}
+  ],
+  "camera": {"lens_mm": 52, "distance": 12, "travel_x": 0.6},
+  "motion": {"settle_fraction": 0.72},
+  "acceptance": [
+    {"id": "depth-readability", "check": "REPLACE: observable layer separation and edge-clearance requirement", "evidence": "REPLACE: complete-motion inspection evidence"}
+  ]
+}

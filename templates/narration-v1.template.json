@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "voice": {
+    "stability": 0.5,
+    "similarity_boost": 0.75,
+    "style": 0,
+    "speed": 1
+  },
+  "start_at": 0.6,
+  "segments": [
+    {
+      "id": "hook",
+      "text": "REPLACE: the opening lines exactly as they should be spoken (one thought, 2-4 sentences).",
+      "pause_after": 1.2,
+      "note": "REPLACE: what the picture does during the pause (e.g. title card lands, clock tick SFX)"
+    },
+    {
+      "id": "problem",
+      "text": "REPLACE: next segment.",
+      "pause_after": 0.8
+    },
+    {
+      "id": "turn",
+      "text": "REPLACE: the turning point; the music lifts after this pause.",
+      "pause_after": 1.5,
+      "note": "music transition beat: place the second music track at this segment's end + pause"
+    },
+    {
+      "id": "cta",
+      "text": "REPLACE: the call to action.",
+      "pause_after": 0
+    }
+  ]
+}

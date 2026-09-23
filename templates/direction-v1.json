@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "project": "REPLACE: production name",
+  "outcome": {
+    "audience": "REPLACE: the specific primary audience and viewing context",
+    "change": "REPLACE: the audience state before and after the film",
+    "evidence": "REPLACE: the visible or audible proof that earns the change",
+    "action": "REPLACE: the exact verified next action and destination"
+  },
+  "concept": {
+    "governing_idea": "REPLACE: one idea that governs image, performance, edit and sound",
+    "point_of_view": "REPLACE: whose knowledge or experience organizes the film",
+    "hook": "REPLACE: the truthful opening gap and how it gains attention",
+    "payoff": "REPLACE: how the film closes the opening promise"
+  },
+  "visual_system": {
+    "attention": "REPLACE: how attention begins, transfers and lands",
+    "composition": "REPLACE: depth, balance, negative space and aspect behavior",
+    "camera": "REPLACE: static and moving-camera grammar with narrative reasons",
+    "lighting": "REPLACE: motivation, hierarchy, material and continuity rules",
+    "palette": "REPLACE: verified colors, contrast behavior and exclusions",
+    "materials": "REPLACE: how important skin, product and environment surfaces read",
+    "continuity": "REPLACE: screen geography, identity and state rules between shots",
+    "style_constraints": [],
+    "exclusions": []
+  },
+  "sound_system": {
+    "voice": "REPLACE: performance, pronunciation and perspective rules",
+    "ambience": "REPLACE: place, depth and continuity behavior",
+    "music": "REPLACE: dramatic function, structural changes and edit behavior",
+    "effects": "REPLACE: material and event-specific sound language",
+    "silence": "REPLACE: where reduced sound is intentional and what it achieves"
+  },
+  "delivery": [
+    {
+      "id": "REPLACE: unique target id",
+      "width": 1080,
+      "height": 1920,
+      "platform": "REPLACE: platform and placement",
+      "safe_areas": "REPLACE: composition and platform-overlay safety rules"
+    }
+  ],
+  "open_decisions": []
+}

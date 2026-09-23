@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "technique": "planar-screen-replacement",
+  "shot_id": "REPLACE: shot id",
+  "intent": "REPLACE: visible story purpose of the screen replacement",
+  "width": 1920,
+  "height": 1080,
+  "fps": 24,
+  "frames": 72,
+  "samples": 1,
+  "plate": "REPLACE: local plate image",
+  "replacement": "REPLACE: local replacement artwork",
+  "insert_opacity": 1.0,
+  "track": [
+    {"frame": 1, "corners": {"upper_left": [0.2, 0.8], "upper_right": [0.8, 0.8], "lower_left": [0.2, 0.2], "lower_right": [0.8, 0.2]}},
+    {"frame": 72, "corners": {"upper_left": [0.2, 0.8], "upper_right": [0.8, 0.8], "lower_left": [0.2, 0.2], "lower_right": [0.8, 0.2]}}
+  ],
+  "acceptance": [
+    {"id": "track-stability", "check": "REPLACE: observable tracking requirement", "evidence": "REPLACE: complete-motion inspection evidence"}
+  ]
+}

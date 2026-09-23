@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "target": "REPLACE: exact final encoded file to bind this report to",
+  "clock_segments": [
+    {"source_id": "REPLACE: one continuous animation source", "timeline_start_frame": 0, "timeline_end_frame": 100, "source_start_frame": 0, "source_frames_per_frame": 1},
+    {"source_id": "REPLACE: same source id", "timeline_start_frame": 100, "timeline_end_frame": 120, "source_start_frame": 100, "source_frames_per_frame": 1, "continues_previous": true}
+  ],
+  "required_signals": [
+    {"path": "REPLACE: actual selected SFX source", "in": 0, "duration": 1, "min_peak": 0}
+  ],
+  "audio_joins": [
+    {"path": "REPLACE: voice stem or encoded delivery", "at": 1, "window_ms": 10, "jump_review_db": 12, "step_review": 0.1}
+  ],
+  "pcm_preservation": [
+    {"before": "REPLACE: previous lossless mix or stem", "after": "REPLACE: revised lossless mix or stem", "allowed_intervals": [[1, 1.04]], "protected_intervals": [[1.1, 2]]}
+  ]
+}

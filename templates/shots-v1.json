@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "fps": 24,
+  "shots": [
+    {
+      "id": "REPLACE: unique shot id",
+      "purpose": "REPLACE: the unique story, proof or emotional job of this shot",
+      "action": "REPLACE: the visible action and change inside the frame",
+      "start_state": "REPLACE: exact incoming subject, product and environment state",
+      "end_state": "REPLACE: exact outgoing state that the next shot inherits",
+      "duration_frames": 72,
+      "attention": {
+        "start": "REPLACE: where the eye begins",
+        "path": "REPLACE: what transfers attention and in which order",
+        "end": "REPLACE: where attention lands at the cut"
+      },
+      "camera": {
+        "mode": "static",
+        "reason": "REPLACE: why this camera behavior serves the beat",
+        "start_composition": "REPLACE: size, angle, depth and focal arrangement",
+        "end_composition": "REPLACE: final size, angle, depth and focal arrangement",
+        "velocity": "REPLACE: acceleration, stillness, deceleration and settling behavior",
+        "settle_frames": 12,
+        "handles_frames": 4
+      },
+      "lighting": {
+        "motivation": "REPLACE: credible or deliberately stylized source logic",
+        "subject_priority": "REPLACE: what must remain readable and what may fall away",
+        "background": "REPLACE: depth, texture and separation behavior",
+        "exposure_risk": "REPLACE: highlights, shadows, reflections or color at risk"
+      },
+      "continuity": {
+        "incoming": "REPLACE: state and direction inherited from the prior shot",
+        "outgoing": "REPLACE: state and direction delivered to the next shot",
+        "screen_direction": "REPLACE: action line, gaze and movement direction"
+      },
+      "sound": {
+        "foreground": "REPLACE: voice, foley or designed event carrying this beat",
+        "perspective": "REPLACE: audible distance, space and material behavior",
+        "transition": "REPLACE: sound motivation into and out of the shot"
+      },
+      "source": {
+        "kind": "existing-asset",
+        "status": "planned",
+        "description": "REPLACE: exact asset or generation/build plan"
+      },
+      "acceptance": [
+        {
+          "id": "REPLACE: criterion id",
+          "check": "REPLACE: one observable fact that must pass",
+          "evidence": "REPLACE: frame range, timestamp, reference or listening evidence"
+        }
+      ]
+    }
+  ]
+}

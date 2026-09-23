@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "root": "C:/render-worker",
+  "jobs_root": "C:/render-worker/jobs",
+  "incoming_root": "C:/render-worker/incoming",
+  "outgoing_root": "C:/render-worker/outgoing",
+  "blender": "C:/render-worker/tools/blender-5.1.0/blender.exe",
+  "render_script": "C:/render-worker/bin/render_blender_job.py",
+  "max_archive_bytes": 42949672960
+}

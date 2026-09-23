@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.ruff_cache/
+connections.json
+_backups/
+productions/
+# _verification holds private ledgers; only the Grok native patch package ships
+_verification/*
+!_verification/20260909-provider-expansion/
+_verification/20260909-provider-expansion/*
+!_verification/20260909-provider-expansion/native-before/
+!_verification/20260909-provider-expansion/native-after/

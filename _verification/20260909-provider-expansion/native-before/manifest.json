@@ -1,0 +1,32 @@
+[
+  {
+    "remote": "/app/extensions/xai/video-generation-provider.ts",
+    "local": "<skill-root>\\_verification\\20260909-provider-expansion\\native-before\\video-generation-provider.ts",
+    "sha256": "433bce07ff806e20ccf192f2d9a727258791772ea8dfde35d4710a1a2b0ab4e3",
+    "bytes": 17001
+  },
+  {
+    "remote": "/app/extensions/xai/video-generation-provider.test.ts",
+    "local": "<skill-root>\\_verification\\20260909-provider-expansion\\native-before\\video-generation-provider.test.ts",
+    "sha256": "fcfd480ee925604edf1d0c1cbeaec1ae5cf3c5a4bd3fc426aeb1661913a1daa0",
+    "bytes": 19936
+  },
+  {
+    "remote": "/app/extensions/xai/index.ts",
+    "local": "<skill-root>\\_verification\\20260909-provider-expansion\\native-before\\index.ts",
+    "sha256": "7c1ced57b4ae942a6a121171d69aeba53107e2f74be2af0ce5aa80eeb7211cec",
+    "bytes": 9771
+  },
+  {
+    "remote": "/app/extensions/xai/openclaw.plugin.json",
+    "local": "<skill-root>\\_verification\\20260909-provider-expansion\\native-before\\openclaw.plugin.json",
+    "sha256": "807eef4d85eb903bb57b44f8bd3e58dcdd24fe809f33ecd5b5cf5d72e3b03715",
+    "bytes": 9121
+  },
+  {
+    "remote": "/app/dist/video-generation-provider-PMWf4yep.js",
+    "local": "<skill-root>\\_verification\\20260909-provider-expansion\\native-before\\video-generation-provider-PMWf4yep.js",
+    "sha256": "8d2b7b88518022bc684249e8479cf9a2ae282864cb8d3aa08d952b62997789b4",
+    "bytes": 13590
+  }
+]

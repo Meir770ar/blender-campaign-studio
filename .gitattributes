@@ -1,0 +1,3 @@
+* text=auto
+# hashed deployment artifacts: never convert line endings
+_verification/20260909-provider-expansion/** -text

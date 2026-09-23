@@ -1,0 +1,17 @@
+{
+  "contract": "20260909-v1.5-1080p",
+  "files": [
+    {
+      "remote": "/app/extensions/xai/video-generation-provider.ts",
+      "file": "video-generation-provider.ts",
+      "before_sha256": "433bce07ff806e20ccf192f2d9a727258791772ea8dfde35d4710a1a2b0ab4e3",
+      "after_sha256": "5b62b3d5619076c03fcf321fb7a8d599e44aeec059a9fc31261373a4b02a3e22"
+    },
+    {
+      "remote": "/app/dist/video-generation-provider-PMWf4yep.js",
+      "file": "video-generation-provider-PMWf4yep.js",
+      "before_sha256": "8d2b7b88518022bc684249e8479cf9a2ae282864cb8d3aa08d952b62997789b4",
+      "after_sha256": "a8a51cd2b8f4b69be5f09773fbb81af0be31b4408d59d92b123471db3dc4ccb1"
+    }
+  ]
+}
