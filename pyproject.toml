@@ -1,0 +1,11 @@
+# Tooling configuration only; the scripts are run directly, not installed as a package.
+
+[tool.ruff]
+line-length = 140
+target-version = "py311"
+extend-exclude = ["_verification"]
+
+[tool.ruff.lint]
+select = ["F"]
+# Two deliberately kept unused locals document intent (edit_audit.rate, shot_templates.aspect).
+ignore = ["F841"]
