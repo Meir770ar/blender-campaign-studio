@@ -2,6 +2,35 @@
 
 ## DaVinci hand-off and audit fixes — 2026-09-20 (see below the 09-23 entry)
 
+## 2026-09-23 demo film, developer cut (v006) after the critique
+
+- The 48 s Hebrew film (v002) was rejected by the user and a Gemini critique: wrong language for the audience, slow pace,
+  stock imagery instead of the product. Rebuilt as a 32 s developer cut with no new generation: English narration rendered
+  once (ElevenLabs premade voice "Adam", speed 1.15, 405 characters), electronic library beat at -14 LUFS with a gain-key
+  lift into the end card, English karaoke captions with brand words, and 14 cuts of 0.7-3.5 s: terminal scenes recorded with
+  Playwright from an HTML terminal that replays the real commands and outputs of this production, a data-driven Blender VSE
+  timeline animation built from plan-v002.json (131 strips), three generated shots retimed 1.3x, one real Hebrew caption
+  layer lifted above the English line via transform_keys, the earlier end card, and a new English end card.
+- Not done and why: live screen capture of Blender and DaVinci Resolve. The desktop was locked (ffmpeg gdigrab captured the
+  Windows lock screen) and Resolve did not start within 60 s. The XML export for plan-v002 ran (131 items, 12 video tracks);
+  the terminal scene shows only that, no import claim. Swap in real captures when the desktop is available.
+- QA: v004 failed on true peak after AAC (-0.95 vs -1.0); v005 remixed with -1.5 dBTP headroom passes (-1.45 encoded).
+  v006 fixes a caption/end-card overlap in a result cut. Viewing copy sent from the organizational WAHA session (personal
+  session still not WORKING). Creative acceptance by the user pending.
+- Lesson: paid CLI calls and GUI captures need a foreground session and an unlocked desktop; check both before promising.
+
+## 2026-09-23 demo film v007 accepted (real captures, master, delivery copies)
+
+- v007 replaces the simulated Blender/Resolve scenes with real captures: Blender 5.1 VSE and a live Blender window, the
+  DaVinci Resolve Studio 21.1 Edit page (imported timeline, playhead moving) and Color page. The first v007 render carried a
+  Resolve frame with "Media Offline"; it was set aside as `render-v007-draft1` and re-rendered after a clean capture.
+- Accepted by the user at 23:07 after watching the 720p viewing copy. Master re-rendered from the same `project.blend` at
+  PERC_LOSSLESS/BEST (`deliveries/master-v007/master.mp4`, 32 s, 1280x720, delivery QA pass, -14.05 LUFS, -1.48 dBTP).
+  YouTube copy is a lanczos upscale to 1080p because every source capture is 720p; README GIF is 2.0-12.0 s at 640x360,
+  12 fps, 2.2 MB, and the README still is the Hebrew caption layer at 23.9 s.
+- Viewing copy sent from the organizational WAHA session again (personal session FAILED, needs re-pairing); the receipt
+  carries no message id from the NOWEB engine, so the delivery was confirmed by reading the chat back (ack READ).
+
 ## 2026-09-23 demo production (bcs-demo-45s) and Genspark primary route
 
 - `provider_jobs.py` now accepts Genspark as a primary route (`test_genspark_primary.py`, 2 tests; 222 total pass): text-to-video
@@ -15,6 +44,13 @@
   reconciliation needs the website's video history.
 - Lesson recorded in the Genspark test and docs: never run a paid CLI call in a background shell that can be torn down; run it
   in the foreground with its own timeout, and treat an interrupted call as `unknown`.
+- Outcome (19:50): all eight shots collected (S01 1080P; S02 and S04 retaken as attempts 2 of 2 at 720P; six at 720P, about
+  385 credits each, balance 5352 -> 1200), Suno rendered two variants after the user warmed the CAPTCHA (first registered),
+  master mixed at -16 LUFS with a gain-key lift into the end card, 48 s plan of 131 clips assembled in Blender 5.1 at 1280x720
+  (`render-v002/preview.mp4`), delivery QA technical_pass with the mix targets, contact sheets and end-card frames inspected
+  (v001 had captions colliding with the end-card URL; v002 stops captions at the end card). Viewing copy sent to the user's
+  personal number from the organizational WAHA session because the personal session was not WORKING. Creative acceptance
+  by the user pending.
 
 ## 2026-09-23 round 2: fixes chosen by council + Jev verdict (F1, F7, F5, F8, F4, F3)
 

@@ -12,6 +12,14 @@ Every paid generation is a ledger entry with a recorded approval and a cap. Noth
 
 > Built for Hebrew commercials. The typography path (Chromium bidi and shaping to PNG layers) should serve other right-to-left languages such as Arabic and Persian; only Hebrew has been verified.
 
+## Demo
+
+![Ten seconds of the demo film: one request, eight shots, a budget cap and a pilot](docs/demo-10s.gif)
+
+The film is a 32-second developer cut, assembled by the skill from its own plan (`studio.py validate`, `studio.py assemble --render`, `delivery_qa.py`). The Blender and DaVinci Resolve screens are real captures of the pipeline running, and the caption line below is what the typography path produces: a licensed Hebrew font shaped by Chromium into a PNG layer with the spoken word in amber, never typed into an NLE.
+
+![Hebrew caption layer with the spoken word highlighted in amber](docs/still-hebrew-captions.png)
+
 ## Pipeline
 
 ```mermaid
