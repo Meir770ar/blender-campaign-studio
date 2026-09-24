@@ -3,15 +3,19 @@
 eleven_v3 has no SSML <break>; a directed pause is silence *you* place between segments. The
 script is written as segments with `pause_after`. Two render modes:
 
-  single    (recommended) the whole script is one ElevenLabs request, so tone, energy and pace stay
+  single    (recommended) the whole script is one provider request, so tone, energy and pace stay
             continuous; `layout --mode single` cuts the rendered audio at the segment boundaries using
-            the returned word timestamps and inserts the pauses. A retake is a fresh single render.
+            the word timestamps and inserts the pauses. A retake is a fresh single render.
   segments  one request per segment (retake one segment alone); adjacent segments can differ in
             energy because the model is not deterministic, so listen to every seam.
 
   split   narration-v1 JSON  ->  request-single.json plus one request per segment, and an index
   layout  rendered audio      ->  voice tracks with exact `at` times for audio_finish.py, one merged
                                   words.json (on the mix clock) for captions.py, end_of_speech
+
+The script names its provider: `elevenlabs` (default; voice settings stability/similarity_boost/style/
+speed, word timing returned with the audio) or `gemini_tts` (Gemini 3.8 Flash TTS; `voice` is a prebuilt
+voice name, `style` a short delivery note; provider_jobs aligns the audio to the text afterwards).
 
 Nothing here calls a provider; every render is a provider_jobs.py job with its own approval.
 """
@@ -31,6 +35,8 @@ from studio import ffprobe, load_json, number, write_new
 SLUG = re.compile(r'^[a-z0-9][a-z0-9_-]{0,31}$')
 VOICE_DEFAULTS = {'stability': .5, 'similarity_boost': .75, 'style': 0, 'speed': 1}
 VOICE_RANGES = {'stability': (0, 1), 'similarity_boost': (0, 1), 'style': (0, 1), 'speed': (.7, 1.2)}
+NARRATION_PROVIDERS = ('elevenlabs', 'gemini_tts')
+GEMINI_VOICE_FIELDS = ('voice', 'style')
 HEBREW_WORDS_PER_SECOND = 2.4   # planning estimate only; the rendered audio sets the real durations
 SINGLE_LIMIT = 4500             # characters per ElevenLabs request (provider_jobs enforces the same)
 HANDLE_BEFORE = 0.04            # seconds kept before a segment's first word when cutting a single render
@@ -40,12 +46,23 @@ HANDLE_AFTER = 0.10             # seconds kept after its last word (consonant ta
 def validate_script(script):
     if not isinstance(script, dict) or script.get('version') != 1:
         raise ValueError('Narration script must be an object with version=1')
+    provider = script.get('provider', 'elevenlabs')
+    if provider not in NARRATION_PROVIDERS:
+        raise ValueError('provider must be elevenlabs or gemini_tts')
     voice = script.get('voice', {})
-    if not isinstance(voice, dict) or set(voice) - set(VOICE_DEFAULTS):
-        raise ValueError('voice accepts only stability, similarity_boost, style and speed')
-    for key, (lo, hi) in VOICE_RANGES.items():
-        if key in voice:
-            number(voice[key], f'voice.{key}', lo, hi)
+    if not isinstance(voice, dict):
+        raise ValueError('voice must be an object')
+    if provider == 'elevenlabs':
+        if set(voice) - set(VOICE_DEFAULTS):
+            raise ValueError('voice accepts only stability, similarity_boost, style and speed')
+        for key, (lo, hi) in VOICE_RANGES.items():
+            if key in voice:
+                number(voice[key], f'voice.{key}', lo, hi)
+        voice = {**VOICE_DEFAULTS, **voice}
+    else:
+        if set(voice) - set(GEMINI_VOICE_FIELDS) or not all(isinstance(voice[k], str) for k in voice):
+            raise ValueError('gemini_tts voice accepts only the strings voice (prebuilt voice name) and style (delivery note)')
+        voice = {k: voice[k].strip() for k in GEMINI_VOICE_FIELDS if voice.get(k, '').strip()}
     start_at = number(script.get('start_at', 0), 'start_at', 0, 600)
     segments = script.get('segments')
     if not isinstance(segments, list) or not segments:
@@ -73,7 +90,7 @@ def validate_script(script):
             raise ValueError(f'{location} has unknown fields: {", ".join(sorted(extra))}')
         normalized.append({'id': identifier, 'text': text, 'pause_after': pause, 'words': len(text.split()),
                            'note': segment.get('note', '')})
-    return {'voice': {**VOICE_DEFAULTS, **voice}, 'start_at': start_at, 'segments': normalized}
+    return {'provider': provider, 'voice': voice, 'start_at': start_at, 'segments': normalized}
 
 
 def text_digest(text):
@@ -91,7 +108,7 @@ def split(script_path, out_dir):
     out = new_directory(out_dir)
     index, total_words, total_pause = [], 0, 0.0
     for segment in script['segments']:
-        request = {'provider': 'elevenlabs', 'text': segment['text'], **script['voice']}
+        request = {'provider': script['provider'], 'text': segment['text'], **script['voice']}
         path = out / f'request-{segment["id"]}.json'
         write_new(path, request)
         index.append({'id': segment['id'], 'request': str(path), 'text_sha256': text_digest(segment['text']),
@@ -102,9 +119,10 @@ def split(script_path, out_dir):
     single = None
     if len(joined) <= SINGLE_LIMIT:
         single = out / 'request-single.json'
-        write_new(single, {'provider': 'elevenlabs', 'text': joined, **script['voice']})
+        write_new(single, {'provider': script['provider'], 'text': joined, **script['voice']})
     estimate = script['start_at'] + total_words / HEBREW_WORDS_PER_SECOND + total_pause
-    report = {'version': 1, 'script': str(script_path), 'script_sha256': sha256_file(script_path), 'segments': index,
+    report = {'version': 1, 'script': str(script_path), 'script_sha256': sha256_file(script_path),
+              'provider': script['provider'], 'segments': index,
               'single_request': str(single) if single else None,
               'single_text_sha256': text_digest(joined) if single else None,
               'recommended_mode': 'single' if single else 'segments',
@@ -121,17 +139,23 @@ def split(script_path, out_dir):
 
 
 def find_rendered(jobs_root, text):
-    """The single completed ElevenLabs job whose request text equals this text exactly."""
+    """The rendered audio of the single completed narration job whose request text equals this text exactly."""
     matches = []
     for job_path in sorted(Path(jobs_root).resolve().glob('*/job.json')):
         job = load_json(job_path)
         request = job.get('request', {})
-        if request.get('provider') == 'elevenlabs' and request.get('text') == text and job.get('state') == 'complete':
-            matches.append(job_path.parent)
+        if request.get('provider') in NARRATION_PROVIDERS and request.get('text') == text and job.get('state') == 'complete':
+            matches.append((job_path.parent, job))
     if len(matches) != 1:
-        raise ValueError(f'expected exactly one complete ElevenLabs job for the text, found {len(matches)}; '
+        raise ValueError(f'expected exactly one complete narration job for the text, found {len(matches)}; '
                          'pass --audio ID=PATH to choose the take')
-    return matches[0]
+    folder, job = matches[0]
+    assets = job.get('assets') or []
+    if assets and isinstance(assets[0].get('path'), str):
+        return Path(assets[0]['path'])
+    if job['request'].get('provider') == 'elevenlabs':
+        return folder / 'narration.mp3'   # ledgers written before assets were recorded on narration jobs
+    raise ValueError('the completed narration job records no audio asset')
 
 
 def parse_overrides(values):
@@ -173,7 +197,8 @@ def _audio_duration(path):
 def layout_single(script, audio, out):
     words_path = audio.with_name('words.json')
     if not words_path.is_file():
-        raise ValueError('single mode needs words.json next to the narration (the ElevenLabs alignment written by provider_jobs)')
+        raise ValueError('single mode needs words.json next to the narration (written by provider_jobs from the '
+                         'ElevenLabs alignment or the forced alignment of a Gemini render)')
     words = checked_words(load_json(words_path))
     groups = segment_words(words, script['segments'])
     total = _audio_duration(audio)
@@ -211,7 +236,7 @@ def layout_segments(script, out, jobs_root, overrides):
         if segment['id'] in overrides:
             audio = overrides[segment['id']]
         elif jobs_root:
-            audio = find_rendered(jobs_root, segment['text']) / 'narration.mp3'
+            audio = find_rendered(jobs_root, segment['text'])
         else:
             raise ValueError(f'segment {segment["id"]}: pass --jobs or --audio {segment["id"]}=PATH')
         if not audio.is_file():
@@ -245,7 +270,7 @@ def layout(script_path, out_dir, jobs_root=None, audio_overrides=None, mode='seg
         if 'single' in overrides:
             audio = overrides['single']
         elif jobs_root:
-            audio = find_rendered(jobs_root, single_text(script)) / 'narration.mp3'
+            audio = find_rendered(jobs_root, single_text(script))
         else:
             raise ValueError('single mode: pass --jobs or --audio single=PATH')
         if not audio.is_file():
@@ -273,7 +298,7 @@ def main(argv=None):
     q = sub.add_parser('split'); q.add_argument('--script', required=True); q.add_argument('--out-dir', required=True)
     q = sub.add_parser('layout'); q.add_argument('--script', required=True); q.add_argument('--out-dir', required=True)
     q.add_argument('--mode', choices=('segments', 'single'), default='segments')
-    q.add_argument('--jobs', help='provider_jobs folder holding the completed ElevenLabs job(s)')
+    q.add_argument('--jobs', help='provider_jobs folder holding the completed narration job(s)')
     q.add_argument('--audio', action='append', help='ID=PATH override (segment id, or "single" for the single render); repeatable')
     a = p.parse_args(argv)
     if a.command == 'split':

@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import base64
 from contextlib import contextmanager
+import io
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -13,12 +14,15 @@ import subprocess
 import sys
 import urllib.request
 import urllib.error
+import wave
 from campaign_common import atomic_json, digest_json, lock, now, sha256_file
-from studio import load_json, number, source_path
+from studio import ffprobe, load_json, number, source_path
 import grok_contract
 import heygen_bridge
 
 ROOT = Path(__file__).resolve().parent.parent
+PROVIDERS = ('images', 'suno', 'grok', 'genspark', 'elevenlabs', 'gemini_tts', 'elevenlabs_sfx', 'heygen')
+NARRATION_PROVIDERS = ('elevenlabs', 'gemini_tts')
 
 
 def validate_request(value, base, config):
@@ -26,19 +30,22 @@ def validate_request(value, base, config):
         raise ValueError('Provider request must be a JSON object')
     r = dict(value)
     provider = r.get('provider')
-    if provider not in ('images', 'suno', 'grok', 'genspark', 'elevenlabs', 'heygen'):
-        raise ValueError('provider must be images, suno, grok, genspark, elevenlabs or heygen')
+    if provider not in PROVIDERS:
+        raise ValueError('provider must be one of ' + ', '.join(PROVIDERS))
     allowed = {
         'images': {'prompt', 'references', 'avoid', 'style_constraints'},
         'suno': {'style', 'lyrics', 'title', 'instrumental', 'extend_clip_id', 'extend_at_seconds'},
         'grok': {'prompt', 'references', 'duration_seconds', 'aspect_ratio', 'resolution', 'audio', 'model', 'mode', 'video_url', 'source_duration_seconds', 'avoid', 'style_constraints'},
         'genspark': {'prompt', 'references', 'duration_seconds', 'aspect_ratio', 'resolution', 'audio', 'fallback_for', 'avoid', 'style_constraints'},
-        'elevenlabs': {'text', 'stability', 'similarity_boost', 'style', 'speed'},
+        'elevenlabs': {'text', 'stability', 'similarity_boost', 'style', 'speed', 'retake_of'},
+        'gemini_tts': {'text', 'style', 'voice', 'retake_of'},
+        'elevenlabs_sfx': {'text', 'duration_seconds', 'prompt_influence', 'loop'},
         'heygen': {'operation', 'options', 'character'},
     }[provider] | {'provider'}
     if set(r) - allowed:
         raise ValueError('Unknown request fields: ' + ', '.join(sorted(set(r) - allowed)))
-    for field in ({'images': ['prompt'], 'grok': ['prompt'], 'genspark': ['prompt'], 'suno': ['style'], 'elevenlabs': ['text'], 'heygen': []}[provider]):
+    for field in ({'images': ['prompt'], 'grok': ['prompt'], 'genspark': ['prompt'], 'suno': ['style'], 'elevenlabs': ['text'],
+                   'gemini_tts': ['text'], 'elevenlabs_sfx': ['text'], 'heygen': []}[provider]):
         if not isinstance(r.get(field), str) or not r[field].strip():
             raise ValueError(f'{field} is required')
     if 'avoid' in r or 'style_constraints' in r:
@@ -47,6 +54,8 @@ def validate_request(value, base, config):
             r['style_constraints'] = [item.strip() for item in r['style_constraints']]
         if 'avoid' in r:
             r['avoid'] = [item.strip() for item in r['avoid']]
+    if 'retake_of' in r and (not isinstance(r['retake_of'], str) or not re.fullmatch(r'[0-9a-f]{64}', r['retake_of'])):
+        raise ValueError('retake_of must be the 64-character id of the earlier narration job being retaken')
     if provider == 'grok':
         r = grok_contract.validate(r, base, config[provider])
     if provider == 'heygen':
@@ -116,6 +125,28 @@ def validate_request(value, base, config):
             r[key] = number(r.get(key, default), key, lo, hi)
         if r['stability'] not in (0, .5, 1):
             raise ValueError('eleven_v3 stability must be 0, 0.5 or 1')
+    if provider == 'gemini_tts':
+        # Gemini 3.8 TTS reads the text verbatim; delivery direction lives in a short style note
+        # (speech_metadata), not in the text. Word timing comes from a forced alignment afterwards.
+        if len(r['text']) > 4500 or '<break' in r['text'].lower():
+            raise ValueError('Split narration below 4500 characters; Gemini TTS takes plain text plus a style note, not SSML')
+        style = r.get('style', config[provider].get('style', ''))
+        if not isinstance(style, str) or len(style) > 300:
+            raise ValueError('style must be a short delivery note of at most 300 characters')
+        r['style'] = style.strip()
+        voice = r.get('voice', config[provider].get('voice'))
+        if not isinstance(voice, str) or not re.fullmatch(r'[A-Za-z][A-Za-z0-9_-]{1,63}', voice):
+            raise ValueError('voice must name a Gemini prebuilt voice (for example Kore or Charon)')
+        r['voice'] = voice
+    if provider == 'elevenlabs_sfx':
+        if len(r['text']) > 450:
+            raise ValueError('Describe one sound effect in at most 450 characters')
+        if 'duration_seconds' in r:
+            number(r['duration_seconds'], 'duration_seconds', .5, 30)
+        r['prompt_influence'] = number(r.get('prompt_influence', .3), 'prompt_influence', 0, 1)
+        r.setdefault('loop', False)
+        if type(r['loop']) is not bool:
+            raise ValueError('loop must be boolean')
     # Secret values are never part of this binding; routes/models/account locations are.
     return {'request': r, 'connection': config[provider], 'version': 1}
 
@@ -156,6 +187,18 @@ def prepare(request_path, jobs, config):
         semantic['request']['options'][ref['option']] = {'sha256': ref['sha256']}
     if semantic['request'].get('fallback_for'):
         semantic['request']['fallback_for'].pop('path')
+    retake = spec['request'].get('retake_of')
+    if retake:
+        # An identical request maps to the same id and is refused after one attempt. A retake names the earlier job
+        # explicitly, so a second paid synthesis is a recorded decision, never a silent retry.
+        earlier = Path(jobs).resolve() / retake / 'job.json'
+        if not earlier.is_file():
+            raise ValueError('retake_of names no job in this jobs folder')
+        earlier_job = load_json(earlier)
+        if earlier_job['state'] in ('prepared', 'submitting'):
+            raise ValueError('The earlier job was never attempted or is still submitting; reconcile it instead of retaking')
+        if earlier_job['state'] == 'complete' and not spec['request'].get('text'):
+            raise ValueError('Nothing to retake')
     job_id = digest_json(semantic)
     folder = Path(jobs).resolve() / job_id
     folder.mkdir(parents=True, exist_ok=True)
@@ -300,28 +343,111 @@ def batch_guard(folder, approval, estimated_usage):
         yield
 
 
-def secret(config):
-    key = os.environ.get('ELEVENLABS_API_KEY')
+def secret(config, name='ELEVENLABS_API_KEY'):
+    name = config.get('key_variable', name)
+    key = os.environ.get(name)
     if not key:
         for line in Path(config['env_file']).read_text(encoding='utf-8-sig').splitlines():
-            match = re.match(r'^\s*(?:export\s+)?ELEVENLABS_API_KEY\s*=\s*(.*?)\s*$', line)
+            match = re.match(r'^\s*(?:export\s+)?' + re.escape(name) + r'\s*=\s*(.*?)\s*$', line)
             if match:
                 key = match[1].strip('"\'')
                 break
     if not key:
-        raise ValueError('ElevenLabs key missing in configured environment')
+        raise ValueError(f'{name} missing in configured environment')
     return key
 
 
-def eleven_http(config, endpoint, body=None):
+def eleven_http(config, endpoint, body=None, raw=False):
     req = urllib.request.Request('https://api.elevenlabs.io/v1/' + endpoint,
           data=json.dumps(body).encode() if body is not None else None,
           headers={'xi-api-key': secret(config), 'Content-Type': 'application/json'})
     try:
         with urllib.request.urlopen(req, timeout=180) as response:
+            return response.read() if raw else json.load(response)
+    except urllib.error.HTTPError as error:
+        raise ValueError(f'ElevenLabs HTTP {error.code}; response body withheld') from None
+
+
+def eleven_multipart(config, endpoint, fields, file_name, file_bytes, mime):
+    """One multipart POST (forced alignment takes the audio file plus the exact text)."""
+    boundary = '----campaign' + os.urandom(12).hex()
+    parts = [f'--{boundary}\r\nContent-Disposition: form-data; name="{name}"\r\n\r\n{value}\r\n'.encode('utf-8')
+             for name, value in fields.items()]
+    parts.append(f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="{file_name}"\r\n'
+                 f'Content-Type: {mime}\r\n\r\n'.encode('utf-8') + file_bytes + b'\r\n')
+    parts.append(f'--{boundary}--\r\n'.encode('utf-8'))
+    req = urllib.request.Request('https://api.elevenlabs.io/v1/' + endpoint, data=b''.join(parts),
+          headers={'xi-api-key': secret(config), 'Content-Type': 'multipart/form-data; boundary=' + boundary})
+    try:
+        with urllib.request.urlopen(req, timeout=300) as response:
             return json.load(response)
     except urllib.error.HTTPError as error:
         raise ValueError(f'ElevenLabs HTTP {error.code}; response body withheld') from None
+
+
+def gemini_http(config, endpoint, body=None):
+    req = urllib.request.Request('https://generativelanguage.googleapis.com/v1beta/' + endpoint,
+          data=json.dumps(body).encode() if body is not None else None,
+          headers={'x-goog-api-key': secret(config, 'GEMINI_API_KEY'), 'Content-Type': 'application/json'})
+    try:
+        with urllib.request.urlopen(req, timeout=300) as response:
+            return json.load(response)
+    except urllib.error.HTTPError as error:
+        raise ValueError(f'Gemini HTTP {error.code}; response body withheld') from None
+
+
+def gemini_audio(result):
+    """Return (base64 audio, mime type) from a Gemini Interactions response.
+
+    On the wire (REST) the audio is a content part inside steps[] ({"type": "audio", "data", "mime_type"}); the SDKs
+    expose the same bytes as the convenience property output_audio. Both shapes are accepted; the request input is
+    never searched."""
+    direct = result.get('output_audio') or result.get('outputAudio')
+    if isinstance(direct, dict) and isinstance(direct.get('data'), str) and direct['data']:
+        return direct['data'], direct.get('mime_type') or direct.get('mimeType') or ''
+    found = []
+
+    def walk(node):
+        if isinstance(node, dict):
+            if node.get('type') == 'audio' and isinstance(node.get('data'), str) and node['data']:
+                found.append((node['data'], node.get('mime_type') or node.get('mimeType') or ''))
+                return
+            for key, value in node.items():
+                if key != 'input':
+                    walk(value)
+        elif isinstance(node, list):
+            for value in node:
+                walk(value)
+    walk(result)
+    if not found:
+        raise ValueError('Gemini returned no audio part; response keys: ' + ', '.join(sorted(result)))
+    if len(found) > 1:
+        raise ValueError(f'Gemini returned {len(found)} audio parts; the raw response is kept for manual assembly')
+    return found[0]
+
+
+def gemini_wav_bytes(audio, mime):
+    """Headerless 16-bit PCM (audio/l16, audio/pcm) is wrapped in a mono WAV header; WAV passes through unchanged."""
+    kind = mime.split(';')[0].strip().lower()
+    if audio[:4] == b'RIFF' or kind not in ('audio/l16', 'audio/pcm'):
+        return audio
+    rate = re.search(r'rate=(\d+)', mime)
+    buffer = io.BytesIO()
+    with wave.open(buffer, 'wb') as out:
+        out.setnchannels(1)
+        out.setsampwidth(2)
+        out.setframerate(int(rate[1]) if rate else 24000)
+        out.writeframes(audio)
+    return buffer.getvalue()
+
+
+def without_audio_data(node):
+    """Receipt copy of a provider response: every base64 audio payload is dropped, metadata is kept."""
+    if isinstance(node, dict):
+        return {k: without_audio_data(v) for k, v in node.items() if not (k == 'data' and isinstance(v, str))}
+    if isinstance(node, list):
+        return [without_audio_data(v) for v in node]
+    return node
 
 
 def suno(command, config, folder=None, payload=None):
@@ -424,6 +550,39 @@ def words_from_alignment(alignment):
     return words
 
 
+def words_from_forced_alignment(alignment):
+    """ElevenLabs forced-alignment tokens -> whitespace-delimited words (punctuation stays attached),
+    the word shape captions.py and narration_plan.py already read from an ElevenLabs alignment."""
+    entries = alignment.get('words')
+    if not isinstance(entries, list) or not entries:
+        raise ValueError('Forced alignment returned no words')
+    words, current, previous = [], None, 0
+    for entry in entries:
+        text = entry.get('text')
+        if not isinstance(text, str):
+            raise ValueError('Forced alignment token without text')
+        if not text.strip():
+            if current:
+                words.append(current)
+                current = None
+            continue
+        start = number(entry.get('start'), 'word start', 0, 36000)
+        end = number(entry.get('end'), 'word end', start, 36000)
+        if start < previous - .05:
+            raise ValueError('Forced alignment is not ordered')
+        previous = start
+        if current:
+            current['word'] += text
+            current['end'] = end
+        else:
+            current = {'word': text, 'start': start, 'end': end}
+    if current:
+        words.append(current)
+    if not words:
+        raise ValueError('Forced alignment returned no words')
+    return words
+
+
 def probe(provider, config):
     c = config[provider]
     if provider == 'images':
@@ -447,6 +606,17 @@ def probe(provider, config):
     if provider == 'elevenlabs':
         voice = eleven_http(c, 'voices/' + c['voice_id'])
         return {'voice_accessible': voice.get('voice_id') == c['voice_id'], 'generation_tested': False}
+    if provider == 'gemini_tts':
+        model = gemini_http(c, 'models/' + c['model'])
+        return {'model_accessible': model.get('name') == 'models/' + c['model'], 'voice': c.get('voice'),
+                'input_token_limit': model.get('inputTokenLimit'),
+                'alignment': c.get('alignment', 'elevenlabs_forced_alignment'), 'generation_tested': False}
+    if provider == 'elevenlabs_sfx':
+        models = eleven_http(c, 'models')
+        listed = any(m.get('model_id') == c['model'] for m in models) if isinstance(models, list) else False
+        return {'api_reachable': isinstance(models, list), 'sound_model_listed': listed, 'model': c['model'],
+                'note': 'the sound generation permission of the key is proven only by an approved generation',
+                'generation_tested': False}
     if provider == 'heygen':
         return {'route': c['route'], 'subscription': heygen_bridge.cli(c, ['status']),
                 'generation_limits': heygen_bridge.cli(c, ['generation-limits']), 'generation_tested': False}
@@ -571,6 +741,57 @@ def execute(folder, config, estimated_usage):
                 args = grok_contract.arguments(r, c, job['id'], upload_reference)
                 job['provider_result'] = gateway(c, job['id'], args)
                 job['state'] = 'submitted' if job['provider_result'].get('ok') else 'unknown'
+            elif provider == 'gemini_tts':
+                content = {'type': 'text', 'text': r['text']}
+                if r['style']:
+                    content['annotations'] = [{'type': 'speech_metadata', 'style': r['style']}]
+                result = gemini_http(c, 'interactions', {
+                    'model': c['model'],
+                    'input': [{'type': 'user_input', 'content': [content]}],
+                    'response_format': {'type': 'audio', 'mime_type': 'audio/wav'},
+                    'generation_config': {'speech_config': [{'voice': r['voice']}]}})
+                # The billed response is on disk before any parsing, so a shape surprise never loses paid audio.
+                pending = folder / 'gemini-response.pending.json'
+                atomic_json(pending, result)
+                job['provider_response_saved'] = pending.name
+                encoded, mime = gemini_audio(result)
+                audio = gemini_wav_bytes(base64.b64decode(encoded, validate=True), mime)
+                (folder / 'narration.wav').write_bytes(audio)
+                atomic_json(folder / 'gemini-receipt.json', without_audio_data(result))
+                job['audio_received'] = True
+                pending.unlink()
+                job.pop('provider_response_saved')
+                media = ffprobe(folder / 'narration.wav')
+                if not any(s.get('codec_type') == 'audio' for s in media['streams']):
+                    raise ValueError('Gemini output is not decodable audio')
+                job['media'] = media
+                job['assets'] = [{'path': str(folder / 'narration.wav'), 'sha256': sha256_file(folder / 'narration.wav')}]
+                if c.get('alignment', 'elevenlabs_forced_alignment') == 'elevenlabs_forced_alignment':
+                    # Gemini returns no word timing; the preserved audio is aligned to the exact text once.
+                    alignment = eleven_multipart(config['elevenlabs'], 'forced-alignment', {'text': r['text']},
+                                                 'narration.wav', audio, 'audio/wav')
+                    atomic_json(folder / 'alignment.json', alignment)
+                    words = words_from_forced_alignment(alignment)
+                    atomic_json(folder / 'words.json', {'words': words, 'source': 'elevenlabs_forced_alignment'})
+                job['state'] = 'complete'
+            elif provider == 'elevenlabs_sfx':
+                output_format = c.get('output_format', 'mp3_44100_128')
+                if not re.fullmatch(r'mp3_\d+_\d+', output_format):
+                    raise ValueError('Configure an mp3_<rate>_<kbps> output_format for sound effects')
+                body = {'text': r['text'], 'model_id': c['model'], 'prompt_influence': r['prompt_influence'], 'loop': r['loop']}
+                if 'duration_seconds' in r:
+                    body['duration_seconds'] = r['duration_seconds']
+                audio = eleven_http(c, 'sound-generation?output_format=' + output_format, body, raw=True)
+                if not audio:
+                    raise ValueError('Provider returned an empty sound effect')
+                (folder / 'sfx.mp3').write_bytes(audio)
+                job['audio_received'] = True
+                media = ffprobe(folder / 'sfx.mp3')
+                if not any(s.get('codec_type') == 'audio' for s in media['streams']):
+                    raise ValueError('Sound effect is not decodable audio')
+                job['media'] = media
+                job['assets'] = [{'path': str(folder / 'sfx.mp3'), 'sha256': sha256_file(folder / 'sfx.mp3')}]
+                job['state'] = 'complete'
             else:
                 result = eleven_http(c, 'text-to-speech/' + c['voice_id'] + '/with-timestamps?output_format=mp3_44100_128',
                      {'text': r['text'], 'model_id': c['model'],
@@ -587,8 +808,10 @@ def execute(folder, config, estimated_usage):
                 job['assets'] = [{'path': str(folder / 'narration.mp3'), 'sha256': sha256_file(folder / 'narration.mp3')}]
                 job['state'] = 'complete'
         except Exception as error:
-            job['state'] = 'received_needs_alignment' if job.get('audio_received') else 'unknown'
+            received = 'received_needs_alignment' if provider in NARRATION_PROVIDERS else 'received_needs_review'
+            job['state'] = received if job.get('audio_received') else 'unknown'
             job['error_type'] = type(error).__name__
+            job['error'] = str(error)[:300]
             atomic_json(folder / 'job.json', job)
             raise ValueError('Attempt did not complete cleanly; state persisted. Reconcile before any new generation') from None
         atomic_json(folder / 'job.json', job)
@@ -704,8 +927,8 @@ def register(folder, asset, receipt):
         allowed = ('.png', '.jpg', '.jpeg', '.webp') if provider == 'images' else ('.mp4', '.mov', '.webm') if provider == 'genspark' else ('.mp3', '.wav', '.flac', '.m4a', '.ogg')
         if source.suffix.lower() not in allowed:
             raise ValueError('Registered output extension does not match provider')
-        from studio import ffprobe
-        media = ffprobe(source)
+        from studio import ffprobe as inspect_media   # resolved at call time (tests patch studio.ffprobe)
+        media = inspect_media(source)
         kind = 'video' if provider in ('images', 'genspark') else 'audio'
         if not any(s['codec_type'] == kind for s in media['streams']):
             raise ValueError('Asset type does not match provider')
@@ -801,7 +1024,7 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--connections', default=str(ROOT / 'connections.json'))
     sub = p.add_subparsers(dest='command', required=True)
-    q = sub.add_parser('probe'); q.add_argument('provider', choices=['images', 'suno', 'grok', 'genspark', 'elevenlabs', 'heygen'])
+    q = sub.add_parser('probe'); q.add_argument('provider', choices=list(PROVIDERS))
     q = sub.add_parser('prepare'); q.add_argument('--request', required=True); q.add_argument('--jobs', required=True)
     q = sub.add_parser('approve'); q.add_argument('--job', required=True); q.add_argument('--evidence', required=True)
     q.add_argument('--limit', type=float, required=True); q.add_argument('--unit', required=True)

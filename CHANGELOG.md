@@ -7,6 +7,15 @@ All notable changes to this project are documented here. The format follows [Kee
 ### Added
 - Genspark as a primary video route: text-to-video (up to 1080P) or one first frame (720P), alongside the existing Grok-fallback contract.
 - README rewritten around the pipeline diagram, the local core versus optional integrations, the spending ledger and a real `plan.json`.
+- Narration through Gemini 3.8 Flash TTS (`gemini_tts`): verbatim text plus a style note, WAV saved first, word timing from one ElevenLabs forced alignment; the narration script chooses its provider and `layout` follows the job's recorded asset.
+- Sound effects through ElevenLabs text-to-sound (`elevenlabs_sfx`): one described effect per approved job, saved as `sfx.mp3` for the `sfx` mix role.
+- HyperFrames as a local motion-graphics source: `hyperframes_clips.py` gates on `hyperframes check`, renders once at the plan fps and writes a receipt; reference notes on the 0.8 capabilities and the Hebrew rules inside a composition.
+
+### Fixed
+- Gemini TTS read the audio only from the SDK's `output_audio` property; the REST response carries it in `steps[].content[]`. The full response is now saved before parsing, both shapes are read, headerless PCM is wrapped in WAV, and the error text is recorded in the job.
+
+### Added (narration)
+- `retake_of` on narration requests: an explicit, recorded retake of an attempted job instead of a silent retry.
 
 ## [1.0.0] - 2026-09-23
 

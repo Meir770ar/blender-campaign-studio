@@ -102,6 +102,8 @@ Outputs voice/music/SFX stems, floating-point premaster, 48kHz/24-bit master and
 
 For narration with directed pauses, write the script as segments (`templates/narration-v1.template.json`). `python scripts/narration_plan.py split --script ... --out-dir ...` emits `request-single.json` (the whole script as one request, the recommended render: continuous tone and pace) plus one request per segment. After the single job completes, `narration_plan.py layout --mode single --script ... --jobs PROJECT/jobs --out-dir ...` cuts the render at the segment boundaries using the word timestamps (40/100 ms handles), inserts each `pause_after`, and writes `mix-tracks.json` (voice tracks for this spec), a merged `words.json` for captions and `end_of_speech_seconds`; the rendered text must equal the script word for word. `--mode segments` lays out per-segment renders instead (retake one segment; listen to every seam). Denoising is off unless needed; voice highpass can be disabled. Two-pass loudness uses the chosen target and checks the result. Replace the plan's old dialogue/music strips with the master when assembling delivery, while retaining stems for editing. Never play both original audio and the master together. Choose musical edit points and sound perspective by listening; automatic mixing does not do that directing work.
 
+The script may set `"provider": "gemini_tts"` (template `templates/narration-gemini-v1.template.json`): `voice` is then a Gemini prebuilt voice name and `style` one delivery note for the whole script; `split` writes `gemini_tts` requests, `execute` saves `narration.wav` and aligns it (`words.json`), and `layout` finds the audio through the job's recorded asset, so both modes work unchanged. A described sound effect is a `{"provider":"elevenlabs_sfx", ...}` job whose `sfx.mp3` goes into the mix spec as a `role: sfx` track at the frame it belongs to.
+
 ## 5. Reusable Blender shots
 
 `shot_templates.py` runs inside Blender 5.1. Real input assets are required; missing files fail. It saves an editable, packed `.blend` with input JSON and renders an optional MP4.
@@ -144,6 +146,18 @@ Plan clip: `{"kind":"image-sequence","path":"assets/butterfly-seq/frame_00001.pn
 The sequence is the first file and its siblings (same folder and extension, sorted); fewer frames than the clip fails unless
 `hold_last` freezes the final frame. `davinci_bridge.py export-xml` substitutes `resolve_movie` for the sequence and refuses
 a sequence without one. Opaque movies can be sequenced with `--allow-opaque`.
+
+### Motion graphics from HTML (HyperFrames)
+
+Kinetic titles, counters, diagrams, lower thirds and decks can be authored as a HyperFrames composition (skill `hyperframes-core`) and rendered locally:
+
+```powershell
+python scripts/hyperframes_clips.py doctor
+python scripts/hyperframes_clips.py render --project PROJECT/motion/opening-title --out PROJECT/motion/opening-title-v001.mp4 --fps 24 --plan PROJECT/plan-v001.json
+python scripts/hyperframes_clips.py render --project PROJECT/motion/lower-third --out PROJECT/motion/lower-third-v001.webm --fps 24 --format webm
+```
+
+The wrapper runs `hyperframes check` first and refuses to render on a finding unless `--skip-check-reason` records it, renders once with `--strict` at the plan fps, verifies the file and writes `<output>.receipt.json`. An mp4 is a plain `movie` clip; a WebM/MOV with alpha goes through `alpha-sequence` above. Hebrew inside the composition follows the same invariants as the PNG layers (logical order, licensed font via `@font-face`, snapshot review). Details and the 0.8 capability notes: [hyperframes.md](hyperframes.md).
 
 ## 6. Assemble and inspect delivery
 

@@ -31,6 +31,40 @@
 - Viewing copy sent from the organizational WAHA session again (personal session FAILED, needs re-pairing); the receipt
   carries no message id from the NOWEB engine, so the delivery was confirmed by reading the chat back (ack READ).
 
+## 2026-09-24 (afternoon) Gemini 3.8 TTS verified live; wire-shape defect fixed
+
+- Key: the valid GEMINI_API_KEY lives in Infisical (project read through the service token in
+  <your-project>/.infisical.json); the speech-generator env_file key is still rejected. `secret()` reads the process
+  environment first, so the key is injected into the provider_jobs process only and never written to disk.
+- First approved job (bcs-promo-en-40s, 31ce0368) ended `unknown`: the request matched the documented shape, but REST returns
+  the audio inside `steps[].content[]`, and the parser read only `output_audio` (an SDK property). The billed audio was not saved,
+  GET /v1beta/interactions (list) answers 404 and the interaction id was never recorded, so it could not be recovered.
+- Fix: full response written to `gemini-response.pending.json` before parsing, audio read from steps[] or output_audio,
+  `audio/l16` wrapped in WAV, error text recorded in job.json; `retake_of` for an explicit narration retake. Tests: 4 new in (241 total OK, ruff clean)
+  test_speech_routes.py.
+- Retake e9fd6cde (retake_of 31ce0368) completed: 90-word English script, voice Charon with a style note, 32.96 s WAV
+  24 kHz mono 16-bit, 1,055 audio output tokens; receipt shows `status: completed` and the steps[] shape. A local faster-whisper
+  medium.en transcript matched the script word for word (HyperFrames transcribed as "hyperframes" at low confidence).
+  Word timing for that production came from local faster-whisper instead of the ElevenLabs forced alignment (production
+  connections override `alignment: local_faster_whisper`), so the forced-alignment route remains unverified live.
+
+## 2026-09-24 HyperFrames 0.8.67, Gemini 3.8 TTS narration, ElevenLabs sound effects
+
+- HyperFrames: `npm i -g hyperframes@latest` 0.7.66 -> 0.8.67, `hyperframes skills update` refreshed 21 skills for Claude Code and
+  Codex (new: hyperframes-audio, hyperframes-studio, motion-graphics, media-use), `hyperframes browser ensure` installed Chrome
+  Headless Shell 152. Verified live: blank starter checked (layout finding: static timeline) and rendered 10 s 1920x1080 draft in
+  42 s; `scripts/hyperframes_clips.py doctor` reports render_ready and `render --fps 24 --skip-check-reason ...` produced a 24 fps
+  file with its receipt. Release notes 0.7.67-0.8.67 read from GitHub and summarised in references/hyperframes.md.
+- Gemini 3.8 Flash TTS (released 2026-09-23): request shape taken from the official docs (Interactions API, `speech_metadata`
+  style, `speech_config[].voice`, WAV 24 kHz mono, `output_audio.data`). Not verified live: every GEMINI_API_KEY found on this
+  machine is rejected by `GET models/gemini-3.8-flash-tts` (HTTP 400). Word timing design: one ElevenLabs forced alignment on
+  the saved WAV; alignment is unit-tested against the documented token shape, not yet against a real response.
+- ElevenLabs SFX: `probe elevenlabs_sfx` reaches `/v1/models` with the configured key (voices readable); `/v1/user/subscription`
+  answers 401, so the key is permission-scoped and the sound-generation and forced-alignment scopes are unproven until an
+  approved job runs.
+- Regression: 237 Python tests OK (12 new in test_speech_routes.py and test_hyperframes_clips.py), 10 Node tests OK, ruff clean
+  with the public pyproject config; older ElevenLabs ledgers without recorded assets still resolve to `narration.mp3`.
+
 ## 2026-09-23 demo production (bcs-demo-45s) and Genspark primary route
 
 - `provider_jobs.py` now accepts Genspark as a primary route (`test_genspark_primary.py`, 2 tests; 222 total pass): text-to-video

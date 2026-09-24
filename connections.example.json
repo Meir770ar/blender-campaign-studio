@@ -43,6 +43,25 @@
     "voice_id": "<voice-id>",
     "model": "eleven_v3"
   },
+  "gemini_tts": {
+    "route": "gemini_api_key",
+    "env_file": "<elevenlabs-env-file>",
+    "key_variable": "GEMINI_API_KEY",
+    "model": "gemini-3.8-flash-tts",
+    "voice": "Charon",
+    "style": "",
+    "alignment": "elevenlabs_forced_alignment",
+    "output": "audio/wav 24 kHz mono 16-bit (narration.wav)",
+    "note": "Gemini 3.8 Flash TTS (released 2026-09-23): 130 languages incl. Hebrew, style note per request, 30 prebuilt voices plus voice design. No word timestamps: provider_jobs aligns the saved audio to the text with the ElevenLabs forced-alignment endpoint (elevenlabs env_file). Audition the voice on one segment before a batch.",
+    "verified_live": "2026-09-24 15:09: live synthesis completed (90-word English script, 32.96 s WAV 24 kHz mono, 1055 audio tokens) with the Infisical GEMINI_API_KEY injected into the process environment; the env_file key is still rejected. Forced alignment through ElevenLabs is not yet verified live."
+  },
+  "elevenlabs_sfx": {
+    "env_file": "<elevenlabs-env-file>",
+    "model": "eleven_text_to_sound_v2",
+    "output_format": "mp3_44100_128",
+    "note": "POST /v1/sound-generation: one described effect, 0.5-30 s, prompt_influence 0-1, optional loop. Charged in ElevenLabs credits; the key needs the sound generation permission (proven only by an approved job).",
+    "verified_live": "not yet (2026-09-24): probe elevenlabs_sfx reaches the API; generation awaits an approved job"
+  },
   "magnific": {
     "route": "official_oauth_mcp",
     "mcp_server": "magnific",
@@ -233,5 +252,14 @@
     "session": "default",
     "credentials_file": "/opt/waha/.credentials",
     "note": "optional: final viewing copy delivered to your own WhatsApp; leave ssh_host empty to disable"
+  },
+  "hyperframes": {
+    "route": "local_cli",
+    "cli": "hyperframes",
+    "min_version": "0.8.67",
+    "skills_root": "<home>/.claude/skills",
+    "chrome": "Chrome Headless Shell managed by `hyperframes browser ensure` (installed 2026-09-24)",
+    "note": "HTML/GSAP motion graphics rendered locally (no account). scripts/hyperframes_clips.py gates on `hyperframes check`, renders once at the plan fps and writes a receipt; the file enters plan.json as a movie clip or, with alpha (webm/mov), through studio.py alpha-sequence. Author with the hyperframes-core skill; Remotion projects are ported with the remotion-to-hyperframes skill.",
+    "verified_live": "2026-09-24: v0.8.67, blank example checked and rendered 10 s 1920x1080 draft in 42 s on the laptop"
   }
 }
