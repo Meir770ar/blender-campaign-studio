@@ -22,6 +22,8 @@ The film is a 32-second developer cut, assembled by the skill from its own plan 
 
 ![Hebrew caption layer with the spoken word highlighted in amber](docs/still-hebrew-captions.png)
 
+A 30-second Hebrew ad for the skill, [docs/ad-30s-he-16x9.mp4](docs/ad-30s-he-16x9.mp4), was made with the skill itself. One timeline JSON built the cut in Blender and was exported to DaVinci Resolve, where it was graded and rendered on the render station. The shots come from Grok Imagine, the narration and sound effects from ElevenLabs and the music from Suno, each through a recorded provider job, and every interface on screen is a real capture of that production. The mix measures -14 LUFS integrated.
+
 ## Pipeline
 
 ```mermaid
