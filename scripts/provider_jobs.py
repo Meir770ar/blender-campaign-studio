@@ -17,6 +17,7 @@ from campaign_common import atomic_json, digest_json, lock, now, sha256_file
 from studio import load_json, number, source_path
 import grok_contract
 import heygen_bridge
+import aggregator_routes
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -26,6 +27,9 @@ def validate_request(value, base, config):
         raise ValueError('Provider request must be a JSON object')
     r = dict(value)
     provider = r.get('provider')
+    if provider in ('fal', 'kie'):
+        r = aggregator_routes.validate(r, config[provider])
+        return {'request': r, 'connection': config[provider], 'version': 1}
     if provider not in ('images', 'suno', 'grok', 'genspark', 'elevenlabs', 'heygen'):
         raise ValueError('provider must be images, suno, grok, genspark, elevenlabs or heygen')
     allowed = {
@@ -426,6 +430,9 @@ def words_from_alignment(alignment):
 
 def probe(provider, config):
     c = config[provider]
+    if provider in ('fal', 'kie'):
+        return {'route': 'queue_api', 'configured_stages': sorted(c['models']), 'generation_tested': False,
+                'note': 'Config only; not an account, balance or model availability check'}
     if provider == 'images':
         return {'route': 'codex_builtin', 'agent_must_verify_tool_available': True, 'generation_tested': False}
     if provider == 'genspark':
@@ -488,6 +495,10 @@ def execute(folder, config, estimated_usage):
         for ref in r.get('references', []):
             if sha256_file(ref['path']) != ref['sha256']:
                 raise ValueError('Reference changed after approval')
+        if provider in ('fal', 'kie'):
+            # Validate the full model payload and credential before marking the paid POST as attempted.
+            aggregator_routes.payload(r, c)
+            aggregator_routes.key(c)
         if provider == 'heygen':
             heygen_bridge.preflight(r, c)
         if provider == 'genspark':
@@ -522,7 +533,10 @@ def execute(folder, config, estimated_usage):
             job.update(state='submitting', attempted_at=now(), estimated_usage=estimated_usage)
             atomic_json(folder / 'job.json', job)  # Persist before transport; a crash cannot cause a repeat.
         try:
-            if provider == 'images':
+            if provider in ('fal', 'kie'):
+                job['provider_result'] = aggregator_routes.submit(r, c)
+                job['state'] = 'submitted'
+            elif provider == 'images':
                 args = {'prompt': r['prompt']}
                 if r['references']:
                     args['referenced_image_paths'] = [x['path'] for x in r['references']]
@@ -602,7 +616,9 @@ def status(folder):
         if job['state'] in ('prepared', 'complete', 'blocked', 'awaiting_agent_tool', 'received_needs_alignment'):
             return job
         provider, c = job['request']['provider'], job['connection']
-        if provider == 'suno' and job.get('provider_result', {}).get('ids'):
+        if provider in ('fal', 'kie') and job.get('provider_result', {}).get('task_id'):
+            result = aggregator_routes.status(job['request'], c, job['provider_result'])
+        elif provider == 'suno' and job.get('provider_result', {}).get('ids'):
             result = suno('status', c, folder, {'ids': job['provider_result']['ids']})
         elif provider == 'grok':
             result = gateway(c, job['id'], {'action': 'status'})
@@ -612,6 +628,24 @@ def status(folder):
             return job
         job['last_status'] = result
         job['checked_at'] = now()
+        atomic_json(folder / 'job.json', job)
+        return job
+
+
+def collect_aggregator(folder):
+    folder = Path(folder).resolve()
+    with lock(folder / '.lock'):
+        job = load_json(folder / 'job.json')
+        r = job['request']
+        if r['provider'] not in ('fal', 'kie') or job['state'] not in ('submitted', 'unknown'):
+            raise ValueError('Requires an existing submitted fal/Kie job')
+        receipt = job.get('provider_result') or {}
+        if not receipt.get('task_id'):
+            raise ValueError('Missing provider task ID; reconcile account history, never resubmit blindly')
+        result = aggregator_routes.result(r, job['connection'], receipt)
+        atomic_json(folder / 'aggregator-result.json', result)
+        job['last_status'] = {'at': now(), 'result_saved': True}
+        job['state'] = 'ready_to_download'
         atomic_json(folder / 'job.json', job)
         return job
 
@@ -801,7 +835,7 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--connections', default=str(ROOT / 'connections.json'))
     sub = p.add_subparsers(dest='command', required=True)
-    q = sub.add_parser('probe'); q.add_argument('provider', choices=['images', 'suno', 'grok', 'genspark', 'elevenlabs', 'heygen'])
+    q = sub.add_parser('probe'); q.add_argument('provider', choices=['images', 'suno', 'grok', 'genspark', 'elevenlabs', 'heygen', 'fal', 'kie'])
     q = sub.add_parser('prepare'); q.add_argument('--request', required=True); q.add_argument('--jobs', required=True)
     q = sub.add_parser('approve'); q.add_argument('--job', required=True); q.add_argument('--evidence', required=True)
     q.add_argument('--limit', type=float, required=True); q.add_argument('--unit', required=True)
@@ -814,7 +848,7 @@ def main():
     q = sub.add_parser('batch-release'); q.add_argument('--jobs', required=True); q.add_argument('--batch', required=True)
     q.add_argument('--evidence', required=True, help='what the pilot review found')
     q = sub.add_parser('execute'); q.add_argument('--job', required=True); q.add_argument('--estimated-usage', type=float, required=True)
-    for name in ('status', 'collect-grok', 'collect-genspark', 'collect-heygen'):
+    for name in ('status', 'collect-grok', 'collect-genspark', 'collect-heygen', 'collect-aggregator'):
         q = sub.add_parser(name); q.add_argument('--job', required=True)
     q = sub.add_parser('register'); q.add_argument('--job', required=True); q.add_argument('--asset', required=True); q.add_argument('--receipt', required=True)
     q = sub.add_parser('browser-check'); q.add_argument('--job', required=True); q.add_argument('--credits', type=float, required=True); q.add_argument('--evidence', required=True)
@@ -831,6 +865,7 @@ def main():
     elif a.command == 'collect-grok': result = collect_grok(a.job)
     elif a.command == 'collect-genspark': result = collect_genspark(a.job)
     elif a.command == 'collect-heygen': result = collect_heygen(a.job)
+    elif a.command == 'collect-aggregator': result = collect_aggregator(a.job)
     elif a.command == 'browser-check': result = browser_check(a.job, a.credits, a.evidence)
     elif a.command == 'record-browser': result = record_browser(a.job, a.task_url, a.outcome, a.receipt)
     else: result = register(a.job, a.asset, a.receipt)
